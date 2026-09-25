@@ -32,9 +32,17 @@ const STATUS_ALIASES: Record<string, StatusKind> = {
   in_review: 'in_review',
   inreview: 'in_review',
   claimed: 'claimed',
+  'in progress (claimed)': 'claimed',
+  'in progress': 'in_review',
   unclaimed: 'unclaimed',
   draft: 'draft',
   partial: 'partial',
+  'partially signed': 'partial',
+  partially_signed: 'partial',
+  'partially-signed': 'partial',
+  'partial case': 'partial',
+  'partially completed': 'partial',
+  partially_completed: 'partial',
   approved: 'approved',
   rejected: 'rejected',
   paid: 'paid',
@@ -46,7 +54,7 @@ export const STATUS_LABEL: Record<StatusKind, string> = {
   in_review: 'In Review',
   draft: 'Draft',
   signed: 'Signed',
-  partial: 'Partial',
+  partial: 'Partially Signed',
   claimed: 'Claimed',
   unclaimed: 'Unclaimed',
   approved: 'Approved',
@@ -56,14 +64,15 @@ export const STATUS_LABEL: Record<StatusKind, string> = {
   unknown: 'Unknown',
 };
 
-export function normalizeStatus(raw?: string | null): StatusKind {
+export function normalizeStatus(raw?: string | null, isPartial?: boolean): StatusKind {
+  if (isPartial) return 'partial';
   if (!raw) return 'unknown';
   const key = raw.trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
   return STATUS_ALIASES[key] ?? 'unknown';
 }
 
-export function statusLabel(raw?: string | null): string {
-  const kind = normalizeStatus(raw);
+export function statusLabel(raw?: string | null, isPartial?: boolean): string {
+  const kind = normalizeStatus(raw, isPartial);
   if (kind === 'unknown' && raw) return raw;
   return STATUS_LABEL[kind];
 }

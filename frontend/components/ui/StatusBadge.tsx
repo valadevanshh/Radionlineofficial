@@ -6,6 +6,7 @@ import { normalizeStatus, statusLabel, type StatusKind } from '@/lib/status';
 
 export interface StatusBadgeProps {
   status?: string | null;
+  isPartial?: boolean;
   className?: string;
 }
 
@@ -24,8 +25,8 @@ const tone: Record<StatusKind, string> = {
   unknown: 'bg-[var(--rn-surface-muted)] text-[var(--rn-text-secondary)] border-[var(--rn-border)]',
 };
 
-export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const kind = normalizeStatus(status);
+export function StatusBadge({ status, isPartial, className }: StatusBadgeProps) {
+  const kind = normalizeStatus(status, isPartial);
   return (
     <span
       className={cn(
@@ -34,7 +35,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         className
       )}
     >
-      {statusLabel(status)}
+      {statusLabel(status, isPartial)}
     </span>
   );
 }
