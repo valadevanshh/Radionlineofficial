@@ -1,0 +1,368 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Radio,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  FileEdit,
+  Clock,
+  Activity,
+  AlertCircle,
+  Building,
+  User,
+  FileText,
+  Sparkles,
+  ShieldAlert,
+  AlertTriangle,
+} from 'lucide-react';
+import { RadiologyStore, XRayReport } from '@/lib/radiology-store';
+import { ApiClient } from '@/lib/api-client';
+
+export default function LiveDashboardPage() {
+  const [reports, setReports] = useState<XRayReport[]>([]);
+  const [wsConnected, setWsConnected] = useState<boolean>(false);
+  const [toastNotice, setToastNotice] = useState<string | null>(null);
+  const router = useRouter();
+
+  const openWorkspace = (report: XRayReport) => {
+    router.push(`/dashboard/workspace/${report.id}`);
+  };
+
+  const loadReports = async () => {
+    try {
+      const data = await ApiClient.getReports();
+      setReports(data);
+    } catch {
+      setReports(RadiologyStore.getReports());
+    }
+  };
+
+  useEffect(() => {
+    loadReports();
+
+    const handleReportsChanged = () => loadReports();
+    window.addEventListener('radionline_reports_changed', handleReportsChanged);
+
+    // Setup WebSockets for Real-Time Incoming Records
+    let ws: WebSocket | null = null;
+    try {
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        setWsConnected(true);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === 'NEW_REPORT') {
+            loadReports();
+            if (payload.report) {
+              const rep = payload.report as XRayReport;
+              const urgentPrefix = rep.isUrgent ? '🚨 STAT URGENT LIVE SCAN' : '🔔 NEW LIVE SCAN';
+              setToastNotice(`${urgentPrefix} ARRIVED: ${rep.fullName} from ${rep.radiologyCenterName}`);
+              setTimeout(() => setToastNotice(null), 6000);
+            }
+          } else if (payload.type === 'REPORT_CLAIMED' || payload.type === 'REPORT_REJECTED') {
+            loadReports();
+          }
+        } catch (err) {
+          console.warn('Live WebSocket parse error:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        setWsConnected(false);
+      };
+    } catch (err) {
+      console.warn('WebSocket init error:', err);
+    }
+
+    return () => {
+      window.removeEventListener('radionline_reports_changed', handleReportsChanged);
+      if (ws) ws.close();
+    };
+  }, []);
+
+  const session = RadiologyStore.getSession();
+  const doctorName = session.name || 'DR. CONSULTANT';
+
+  // Accept Study Action -> Claims study and DIRECTLY OPENS PACS VIEWER WITH PAST HISTORY
+  const handleAcceptReport = async (report: XRayReport) => {
+    try {
+      const updated = await ApiClient.claimReport(report.id, session.email, doctorName);
+      RadiologyStore.saveReport(updated);
+      setReports((prev) => prev.map((r) => (r.id === report.id ? updated : r)));
+      // DIRECTLY OPEN PACS VIEWER WITH IMAGE AND PAST HISTORY BANNER
+      openWorkspace(updated);
+    } catch (err) {
+      console.warn('Claim error:', err);
+      const fallback: XRayReport = {
+        ...report,
+        assignedDoctorId: session.email,
+        assignedDoctorName: doctorName,
+        claimStatus: 'CLAIMED',
+        claimedByDoctorId: session.email,
+        claimedByDoctorName: doctorName,
+      };
+      RadiologyStore.saveReport(fallback);
+      setReports((prev) => prev.map((r) => (r.id === report.id ? fallback : r)));
+      // DIRECTLY OPEN PACS VIEWER WITH IMAGE AND PAST HISTORY BANNER
+      openWorkspace(fallback);
+    }
+  };
+
+  // Decline Study Action
+  const handleDeclineReport = async (report: XRayReport) => {
+    if (!confirm(`Are you sure you want to decline case ${report.patientNumber} (${report.fullName})?`)) {
+      return;
+    }
+    try {
+      await ApiClient.rejectReport(report.id, 'Doctor declined study from Live Feed');
+      loadReports();
+    } catch (err) {
+      console.warn('Decline error:', err);
+      RadiologyStore.deleteReport(report.id);
+      loadReports();
+    }
+    setToastNotice(`Declined study ${report.patientNumber}`);
+    setTimeout(() => setToastNotice(null), 4000);
+  };
+
+  const incomingPendingReports = reports
+    .filter((r) => r.status === 'Pending' && r.claimStatus !== 'CLAIMED')
+    .sort((a, b) => { const au=a.isUrgent?0:1, bu=b.isUrgent?0:1; if(au!==bu) return au-bu; const ap=(a.isPartial||((a.signedStudyCount||0)>0&&(a.signedStudyCount||0)<(a.studyCount||a.bodyParts?.length||0)))?0:1; const bp=(b.isPartial||((b.signedStudyCount||0)>0&&(b.signedStudyCount||0)<(b.studyCount||b.bodyParts?.length||0)))?0:1; if(ap!==bp) return ap-bp; return 0; });
+
+  const claimedMyReports = reports
+    .filter((r) => r.claimedByDoctorId === session.email || r.assignedDoctorId === session.email)
+    .sort((a, b) => { const au=a.isUrgent?0:1, bu=b.isUrgent?0:1; if(au!==bu) return au-bu; const ap=(a.isPartial||((a.signedStudyCount||0)>0&&(a.signedStudyCount||0)<(a.studyCount||a.bodyParts?.length||0)))?0:1; const bp=(b.isPartial||((b.signedStudyCount||0)>0&&(b.signedStudyCount||0)<(b.studyCount||b.bodyParts?.length||0)))?0:1; if(ap!==bp) return ap-bp; return 0; });
+
+  return (
+    <div className="flex-1 flex flex-col min-h-screen bg-slate-50 text-slate-900 font-sans">
+      {/* Toast Notification Banner */}
+      {toastNotice && (
+        <div className="bg-[#009ef7] text-white px-4 py-2 text-xs font-extrabold flex items-center justify-between shadow-md sticky top-0 z-40">
+          <div className="flex items-center gap-2">
+            <Radio className="w-4 h-4 text-yellow-300 animate-pulse" />
+            <span>{toastNotice}</span>
+          </div>
+          <button type="button" onClick={() => setToastNotice(null)} className="text-white hover:text-slate-200 cursor-pointer font-bold">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Main Container */}
+      <div className="w-full p-4 sm:p-6 space-y-5">
+        
+        {/* Top Concise Header Bar */}
+        <div className="flex items-center justify-between bg-white px-5 py-3.5 rounded-xl border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#009ef7]/10 text-[#009ef7] rounded-lg border border-[#009ef7]/20">
+              <Radio className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Doctor Live Dashboard</span>
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className={`px-2.5 py-1 rounded-full border text-[11px] font-bold flex items-center gap-1.5 ${
+              wsConnected
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-amber-50 border-amber-200 text-amber-700'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <span>{wsConnected ? 'Live WS Connected' : 'Polling'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 1: Incoming Live Records Queue */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#009ef7]" />
+                <span>Incoming Live Patient Cases</span>
+              </h2>
+              <span className="px-2 py-0.5 bg-rose-100 text-rose-700 font-bold text-[10px] rounded-full border border-rose-200">
+                {incomingPendingReports.length} Waiting
+              </span>
+            </div>
+          </div>
+
+          {incomingPendingReports.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {incomingPendingReports.map((r) => (
+                <div
+                  key={r.id}
+                  className={`rounded-xl p-4 shadow-xs hover:shadow-md flex flex-col justify-between space-y-3 transition-all border ${
+                    r.isUrgent
+                      ? 'bg-rose-50/40 border-2 border-rose-500 hover:border-rose-600 shadow-rose-100'
+                      : 'bg-white border-slate-200 hover:border-[#009ef7]'
+                  }`}
+                >
+                  <div className="space-y-2.5">
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-extrabold font-mono text-[#009ef7] px-2 py-0.5 bg-[#009ef7]/10 rounded border border-[#009ef7]/20">
+                          {r.patientNumber}
+                        </span>
+                        {r.isUrgent && (
+                          <span className="px-2 py-0.5 bg-rose-600 text-white font-mono font-bold text-[10px] rounded uppercase animate-pulse flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" /> STAT URGENT
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-500">
+                        {r.studyDate}
+                      </span>
+                    </div>
+
+                    {/* Patient Demographics */}
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">
+                        <span className={r.isUrgent ? "text-red-500 font-bold" : undefined}>{r.fullName}</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Gender: <strong className="text-slate-800">{r.gender.charAt(0)}</strong> • Age: <strong className="text-slate-800">{r.age} yrs</strong>
+                      </p>
+                    </div>
+
+                    {/* Diagnostic Lab */}
+                    <div className="text-xs text-slate-700 flex items-center gap-1.5 bg-slate-50 p-2 rounded border border-slate-200">
+                      <Building className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span className="font-semibold truncate">{r.radiologyCenterName}</span>
+                    </div>
+
+                    {/* Body Parts */}
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                        Body Part / Study:
+                      </span>
+                      <span className="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold rounded inline-block">
+                        {r.bodyParts.join(', ')}
+                      </span>
+                    </div>
+
+                    {/* Clinical History */}
+                    {r.clinicalNotes && (
+                      <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-lg space-y-0.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1">
+                          <Activity className="w-3 h-3 text-amber-600" /> History:
+                        </span>
+                        <p className="text-xs text-amber-900 font-sans italic leading-snug">
+                          "{r.clinicalNotes}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accept vs Decline Action Buttons */}
+                  <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAcceptReport(r)}
+                      className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Accept</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeclineReport(r)}
+                      className="py-2 px-3 bg-white hover:bg-rose-50 text-rose-700 border border-slate-300 hover:border-rose-300 font-bold text-xs uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <XCircle className="w-4 h-4 text-rose-600" />
+                      <span>Decline</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center flex flex-col items-center justify-center shadow-xs">
+              <Radio className="w-8 h-8 text-emerald-600 mb-2 animate-pulse" />
+              <h3 className="text-sm font-bold text-slate-800">
+                No Pending Cases Waiting
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Incoming scans from diagnostic centers will appear here instantly.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Section 2: Accepted / Claimed Cases */}
+        {claimedMyReports.length > 0 && (
+          <div className="space-y-3 pt-4 border-t border-slate-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>My Accepted Active Cases ({claimedMyReports.length})</span>
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {claimedMyReports.map((r) => (
+                <div
+                  key={r.id}
+                  className={`rounded-xl p-4 space-y-2.5 shadow-xs border ${
+                    r.isUrgent
+                      ? 'bg-rose-50/40 border-2 border-rose-500 shadow-rose-100'
+                      : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-mono font-bold text-[#009ef7]">{r.patientNumber}</span>
+                      {r.isUrgent && (
+                        <span className="px-1.5 py-0.5 bg-rose-600 text-white font-mono font-bold text-[9px] rounded uppercase animate-pulse flex items-center gap-1">
+                          <AlertTriangle className="w-2.5 h-2.5" /> URGENT
+                        </span>
+                      )}
+                    </div>
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full border border-emerald-200">
+                      ACCEPTED
+                    </span>
+                  </div>
+                  <div className={`text-sm font-bold ${r.isUrgent ? "text-red-500" : "text-slate-900"}`}>{r.fullName}{r.isPartial ? <span className="ml-2 text-[10px] font-semibold text-amber-600">{r.signedStudyCount}/{r.studyCount || r.bodyParts?.length} reported</span> : null}</div>
+                  <div className="text-xs text-slate-500">{r.radiologyCenterName}</div>
+                  
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => openWorkspace(r)}
+                      className="flex-1 py-1.5 bg-[#009ef7] hover:bg-[#008be0] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Open PACS</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openWorkspace(r)}
+                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                    >
+                      <FileEdit className="w-3.5 h-3.5" />
+                      <span>Report</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}

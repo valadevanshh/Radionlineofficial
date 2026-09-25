@@ -1,0 +1,903 @@
+'use client';
+
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  FileText,
+  Search,
+  Filter,
+  RefreshCw,
+  Plus,
+  Activity,
+  CheckCircle2,
+  Clock,
+  Trash2,
+  Eye,
+  FileEdit,
+  BookmarkPlus,
+  X,
+  AlertTriangle,
+  Building,
+} from 'lucide-react';
+import {
+  RadiologyStore,
+  XRayReport,
+  Doctor,
+  RadiologyCenter,
+  UserAccount,
+  formatDateDDMMYYYY,
+} from '@/lib/radiology-store';
+import ReportOptionsPopover from '@/components/ReportOptionsPopover';
+import ReportPreviewModal from '@/components/ReportPreviewModal';
+import NewXRayReportModal from '@/components/NewXRayReportModal';
+import ReviewSignReportModal from '@/components/ReviewSignReportModal';
+import { STUDY_MODALITY_OPTIONS } from '@/components/NewXRayReportModal';
+import { ApiClient } from '@/lib/api-client';
+import { useResizableColumns } from '@/lib/use-resizable-columns';
+
+function AllPatientReportsContent() {
+  const searchParams = useSearchParams();
+  const reportIdParam = searchParams.get('reportId') || searchParams.get('id');
+  const searchParam = searchParams.get('search') || searchParams.get('patientNo') || searchParams.get('patientNumber');
+  const [reports, setReports] = useState<XRayReport[]>([]);
+  const [centers, setCenters] = useState<RadiologyCenter[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [session, setSession] = useState<UserAccount>(RadiologyStore.getSession());
+
+  const [filterName, setFilterName] = useState('');
+  const [filterGender, setFilterGender] = useState('ALL');
+  const [filterCenterId, setFilterCenterId] = useState('ALL');
+  const [filterPatientNo, setFilterPatientNo] = useState('');
+  const [filterBodyPart, setFilterBodyPart] = useState('ALL');
+  const [filterDoctorId, setFilterDoctorId] = useState('ALL');
+
+  const { widths, startResizing } = useResizableColumns({
+    idx: 40,
+    center: 210,
+    patient: 190,
+    genderAge: 110,
+    bodyParts: 160,
+    radiologist: 180,
+    status: 95,
+    studyDate: 105,
+    actions: 160,
+  });
+
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<XRayReport | null>(null);
+  const [previewWithHeader, setPreviewWithHeader] = useState(true);
+  const [previewBodyPart, setPreviewBodyPart] = useState<string | undefined>(undefined);
+  const [isNewReportModalOpen, setIsNewReportModalOpen] = useState(false);
+  const [isReviewSignModalOpen, setIsReviewSignModalOpen] = useState(false);
+
+  const router = useRouter();
+
+  const openWorkspace = (report: XRayReport) => {
+    router.push(`/dashboard/workspace/${report.id}`);
+  };
+
+  const [createTemplateOpen, setCreateTemplateOpen] = useState(false);
+  const [tmplTitle, setTmplTitle] = useState('');
+  const [tmplCenterId, setTmplCenterId] = useState('ALL');
+  const [tmplModality, setTmplModality] = useState('X-Ray');
+  const [tmplBodyPart, setTmplBodyPart] = useState('');
+  const [tmplFindings, setTmplFindings] = useState('');
+  const [tmplImpression, setTmplImpression] = useState('');
+  const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
+
+  const handleOpenCreateTemplate = () => {
+    setTmplTitle('New Master Radiology Template');
+    setTmplCenterId('ALL');
+    setTmplModality('X-Ray');
+    setTmplBodyPart('CHEST PA/AP');
+    setTmplFindings('LUNG FIELDS: Both lung fields are clear without focal consolidation, nodule, or mass.\nCARDIOVASCULAR: Cardiac size and silhouette are within normal limits.');
+    setTmplImpression('1. Normal Radiographic Examination.\n2. No active parenchymal or pleural pathology detected.');
+    setCreateTemplateOpen(true);
+  };
+
+  const handleSaveNewTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tmplTitle.trim()) return;
+
+    let centerName = 'All Centers';
+    if (tmplCenterId !== 'ALL') {
+      const matched = centers.find((c) => c.id === tmplCenterId);
+      if (matched) centerName = matched.centerName;
+    }
+
+    const contentHtml = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b;">
+        <h2 style="color: #009ef7; border-bottom: 2px solid #009ef7; padding-bottom: 4px; text-transform: uppercase;">
+          RADIOLOGY REPORT — ${tmplModality}
+        </h2>
+        <h3 style="color: #0f172a; margin-bottom: 8px;">RADIOLOGICAL FINDINGS:</h3>
+        <p>${tmplFindings.replace(/\n/g, '<br/>')}</p>
+        <br/>
+        <h3 style="color: #0f172a; margin-bottom: 8px;">IMPRESSION & CONCLUSION:</h3>
+        <div style="background-color: #f1f5f9; padding: 10px; border-left: 4px solid #009ef7;">
+          <p>${tmplImpression.replace(/\n/g, '<br/>')}</p>
+        </div>
+      </div>
+    `;
+
+    const tmplObj = {
+      title: tmplTitle.trim(),
+      centerId: tmplCenterId,
+      centerName,
+      modality: tmplModality,
+      bodyPart: tmplBodyPart.trim() || tmplModality,
+      findings: tmplFindings,
+      impression: tmplImpression,
+      content: contentHtml,
+    };
+    try {
+      await ApiClient.saveTemplate(tmplObj);
+    } catch (err) {
+      console.warn('API save template error:', err);
+    }
+    RadiologyStore.saveTemplate(tmplObj);
+
+    setCreateTemplateOpen(false);
+    setSaveSuccessNotice(true);
+    setTimeout(() => setSaveSuccessNotice(false), 3500);
+  };
+
+  const loadStoreData = async () => {
+    try {
+      const [repData, centerData, docData] = await Promise.all([
+        ApiClient.getReports(),
+        ApiClient.getCenters(),
+        ApiClient.getDoctors(),
+      ]);
+      setReports(repData);
+      setCenters(centerData.length > 0 ? centerData : RadiologyStore.getCenters());
+      setDoctors(docData.length > 0 ? docData : RadiologyStore.getDoctors());
+    } catch {
+      setReports(RadiologyStore.getReports());
+      setCenters(RadiologyStore.getCenters());
+      setDoctors(RadiologyStore.getDoctors());
+    }
+    setSession(RadiologyStore.getSession());
+  };
+
+  useEffect(() => {
+    loadStoreData();
+
+    const handleReportsChanged = () => loadStoreData();
+    const handleSessionChanged = () => loadStoreData();
+
+    window.addEventListener('radionline_reports_changed', handleReportsChanged);
+    window.addEventListener('radionline_session_changed', handleSessionChanged);
+
+    // Real-Time WebSocket Connection
+    let ws: WebSocket | null = null;
+    try {
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'NEW_REPORT' || data.type === 'REPORT_CLAIMED' || data.type === 'REPORT_REJECTED') {
+            if (data.report) {
+              RadiologyStore.saveReport(data.report);
+            }
+            loadStoreData();
+          }
+        } catch (e) {
+          console.error('WS message parse error:', e);
+        }
+      };
+    } catch (err) {
+      console.warn('WebSocket connection error:', err);
+    }
+
+    return () => {
+      window.removeEventListener('radionline_reports_changed', handleReportsChanged);
+      window.removeEventListener('radionline_session_changed', handleSessionChanged);
+      if (ws) ws.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (searchParam) {
+      setFilterPatientNo(searchParam);
+    }
+    if (reportIdParam && reports.length > 0) {
+      const matched = reports.find((r) => r.id === reportIdParam || r.patientNumber === reportIdParam);
+      if (matched) {
+        setSelectedReport(matched);
+        setIsPreviewOpen(true);
+      }
+    }
+  }, [searchParam, reportIdParam, reports]);
+
+
+  const filteredReports = useMemo(() => {
+    const list = reports.filter((r) => {
+      if (filterName && !r.fullName.toLowerCase().includes(filterName.toLowerCase())) return false;
+      if (filterGender !== 'ALL' && r.gender !== filterGender) return false;
+      if (filterCenterId !== 'ALL' && r.radiologyCenterId !== filterCenterId) return false;
+      if (filterPatientNo && !r.patientNumber.toLowerCase().includes(filterPatientNo.toLowerCase())) return false;
+      if (filterBodyPart !== 'ALL') {
+        const matches = r.bodyParts.some((bp) => bp.toLowerCase().includes(filterBodyPart.toLowerCase()));
+        if (!matches) return false;
+      }
+      if (filterDoctorId !== 'ALL' && r.assignedDoctorId !== filterDoctorId && r.referringPhysicianId !== filterDoctorId) return false;
+      
+      // Real-time disappearance: If logged in as Doctor, hide cases claimed by other doctors
+      if (session.role === 'DOCTOR' && session.doctorId) {
+        if (r.claimStatus === 'CLAIMED' && r.claimedByDoctorId && r.claimedByDoctorId !== session.doctorId) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    list.sort((a, b) => { const au=a.isUrgent?0:1, bu=b.isUrgent?0:1; if(au!==bu) return au-bu; const ap=(a.isPartial||((a.signedStudyCount||0)>0&&(a.signedStudyCount||0)<(a.studyCount||a.bodyParts?.length||0)))?0:1; const bp=(b.isPartial||((b.signedStudyCount||0)>0&&(b.signedStudyCount||0)<(b.studyCount||b.bodyParts?.length||0)))?0:1; if(ap!==bp) return ap-bp; return 0; }); return list;
+  }, [reports, filterName, filterGender, filterCenterId, filterPatientNo, filterBodyPart, filterDoctorId, session]);
+
+  const handleResetFilters = () => {
+    setFilterName('');
+    setFilterGender('ALL');
+    setFilterCenterId('ALL');
+    setFilterPatientNo('');
+    setFilterBodyPart('ALL');
+    setFilterDoctorId('ALL');
+  };
+
+  const handleSelectReportOption = (report: XRayReport, withHeader: boolean, bodyPart?: string) => {
+    setSelectedReport(report);
+    setPreviewWithHeader(withHeader);
+    setPreviewBodyPart(bodyPart);
+    setIsPreviewOpen(true);
+  };
+
+  const handleOpenReviewSign = (report: XRayReport) => {
+    setSelectedReport(report);
+    setIsReviewSignModalOpen(true);
+  };
+
+  const handleCreateReport = async (newRep: Omit<XRayReport, 'id' | 'createdAt'>) => {
+    if (session.role === 'MANAGER') {
+      try {
+        await ApiClient.submitApproval({
+          managerId: session.email,
+          managerName: session.name,
+          actionType: 'CREATE_CASE',
+          entityType: 'case',
+          payload: newRep as Record<string, any>,
+        });
+        alert('Submitted to Super Admin for approval.');
+      } catch (err: any) {
+        alert('Failed to submit approval: ' + err.message);
+      }
+      return;
+    }
+    try {
+      await ApiClient.saveReport(newRep);
+    } catch (err) {
+      console.warn('PostgreSQL Backend API save notice:', err);
+    }
+    RadiologyStore.saveReport(newRep);
+    loadStoreData();
+    setSaveSuccessNotice(true);
+    setTimeout(() => setSaveSuccessNotice(false), 3500);
+  };
+
+  const handleClaimReport = async (report: XRayReport) => {
+    const currentDocId = session.doctorId || 'doc-1';
+    const currentDocName = session.name || 'DR. RADIOLOGIST';
+    try {
+      const updated = await ApiClient.claimReport(report.id, currentDocId, currentDocName);
+      RadiologyStore.saveReport(updated);
+      loadStoreData();
+      setSaveSuccessNotice(true);
+      setTimeout(() => setSaveSuccessNotice(false), 3500);
+    } catch (err: any) {
+      alert(err.message || 'Study already accepted by another radiologist.');
+    }
+  };
+
+  const handleDeleteReport = async (id: string) => {
+    if (session.role === 'MANAGER') {
+      const rep = reports.find((r) => r.id === id);
+      try {
+        await ApiClient.submitApproval({
+          managerId: session.email,
+          managerName: session.name,
+          actionType: 'DELETE_CASE',
+          entityType: 'case',
+          entityId: id,
+          payload: rep ? (rep as Record<string, any>) : { id },
+        });
+        alert('Delete request submitted to Super Admin for approval.');
+      } catch (err: any) {
+        alert('Failed to submit approval: ' + err.message);
+      }
+      return;
+    }
+
+    if (confirm('Are you sure you want to delete this X-Ray patient record?')) {
+      try {
+        await ApiClient.deleteReport(id);
+      } catch (err) {
+        console.warn('API delete error:', err);
+      }
+      RadiologyStore.deleteReport(id);
+      loadStoreData();
+    }
+  };
+
+
+
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 text-slate-900">
+      {/* Top Section Header Bar */}
+      <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 bg-[#009ef7]/10 text-[#009ef7] border border-[#009ef7]/20 rounded-lg">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-extrabold text-slate-900 font-mono tracking-tight uppercase">
+                Patient X-Ray Reports
+              </h1>
+              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-mono font-bold text-[10px] rounded border border-slate-200">
+                {filteredReports.length} {filteredReports.length === 1 ? 'REPORT' : 'REPORTS'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleOpenCreateTemplate}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-mono rounded-lg transition-colors cursor-pointer border border-slate-200"
+          >
+            <BookmarkPlus className="w-3.5 h-3.5 text-purple-600" />
+            <span className="hidden sm:inline">New Template</span>
+          </button>
+
+          {(session.role === 'SUPER_ADMIN' || session.role === 'CENTER') && (
+            <button
+              type="button"
+              onClick={() => setIsNewReportModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#009ef7] hover:bg-[#008be0] text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-2xs cursor-pointer font-mono shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Record</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filter Toolbar Strip */}
+      <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
+        
+        {/* Mobile Filter Toggle Trigger */}
+        <div className="flex items-center justify-between sm:hidden">
+          <div className="relative flex-1 mr-2">
+            <Search size={13} className="absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search patient name or ID..."
+              value={filterName || filterPatientNo}
+              onChange={(e) => {
+                setFilterName(e.target.value);
+                setFilterPatientNo(e.target.value);
+              }}
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
+            className="px-3 py-1.5 bg-slate-100 border border-slate-300 text-slate-800 font-mono text-xs font-bold rounded-lg flex items-center gap-1 shrink-0"
+          >
+            <Filter size={13} />
+            <span>Filter</span>
+          </button>
+        </div>
+
+        {/* Filters Grid: Always visible on desktop (sm+), expandable on mobile */}
+        <div className={`${mobileFilterOpen ? 'flex' : 'hidden sm:flex'} flex-wrap items-center gap-2 text-xs w-full sm:w-auto`}>
+          <div className="relative hidden sm:flex items-center">
+            <Search size={13} className="absolute left-2.5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Patient name..."
+              value={filterName}
+              onChange={(e) => setFilterName(e.target.value)}
+              className="w-36 pl-8 pr-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none"
+            />
+          </div>
+
+          <input
+            type="text"
+            placeholder="Patient ID..."
+            value={filterPatientNo}
+            onChange={(e) => setFilterPatientNo(e.target.value)}
+            className="w-28 px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none"
+          />
+
+          <select
+            value={filterGender}
+            onChange={(e) => setFilterGender(e.target.value)}
+            className="bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-2 py-1 text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none"
+          >
+            <option value="ALL">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <select
+            value={filterCenterId}
+            onChange={(e) => setFilterCenterId(e.target.value)}
+            className="bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-2.5 py-1 text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none max-w-[170px] truncate"
+          >
+            <option value="ALL">All Diagnostic Centers</option>
+            {centers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.centerName}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filterBodyPart}
+            onChange={(e) => setFilterBodyPart(e.target.value)}
+            className="bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-2 py-1 text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none max-w-[140px] truncate"
+          >
+            <option value="ALL">All Body Parts</option>
+            <option value="CHEST">Chest PA/AP</option>
+            <option value="KNEE">Knee Joint</option>
+            <option value="LUMBAR">Lumbar Spine</option>
+            <option value="SKULL">Skull AP/LAT</option>
+            <option value="PELVIS">Pelvis with Both Hips</option>
+          </select>
+
+          <select
+            value={filterDoctorId}
+            onChange={(e) => setFilterDoctorId(e.target.value)}
+            className="bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-2 py-1 text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none max-w-[140px] truncate"
+          >
+            <option value="ALL">All Radiologists</option>
+            {doctors.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.fullName}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="px-2.5 py-1 text-slate-600 hover:text-slate-900 font-mono text-xs font-bold inline-flex items-center gap-1 border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <RefreshCw size={12} />
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Container: Mobile Card Layout + Desktop Table Layout */}
+      <div className="flex-1 overflow-y-auto bg-slate-50">
+        
+        {/* Mobile View: Compact Case Cards (< sm) */}
+        <div className="sm:hidden p-3 space-y-3">
+          {filteredReports.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-500 bg-white rounded-xl border border-slate-200 font-sans italic">
+              No matching radiology reports found.
+            </div>
+          ) : (
+            filteredReports.map((report, idx) => (
+              <div
+                key={report.id}
+                className={`bg-white border rounded-xl p-3.5 shadow-2xs space-y-2.5 transition-all ${
+                  report.isUrgent ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200'
+                }`}
+              >
+                {/* Top Row: Patient Name, Age/Gender, Status */}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5 flex-wrap font-sans">
+                      <span className={report.isUrgent ? "text-red-500 font-bold" : undefined}>{report.fullName}</span>{report.isPartial ? <span className="ml-2 text-[10px] text-amber-600 font-semibold">{report.signedStudyCount}/{report.studyCount || report.bodyParts?.length} reported</span> : null}
+                      <span className="text-xs font-semibold text-slate-500 font-mono">
+                        ({report.gender?.trim().toUpperCase().startsWith('F') ? 'F' : report.gender?.trim().toUpperCase().startsWith('O') ? 'O' : 'M'}/{report.age}y)
+                      </span>
+                    </div>
+                    <div className="font-mono text-[11px] text-slate-500 font-bold">{report.patientNumber}</div>
+                  </div>
+
+                  <div>
+                    {report.status === 'Completed' ? (
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-md font-mono inline-flex items-center gap-1">
+                        ● Signed
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold text-[10px] rounded-md font-mono inline-flex items-center gap-1">
+                        ▲ Pending
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Center & Priority Tags */}
+                <div className="space-y-1 text-xs">
+                  <div className="font-bold text-slate-700 flex items-center gap-1.5 truncate">
+                    <Building className="w-3.5 h-3.5 text-[#009ef7] shrink-0" />
+                    <span className="truncate">{report.radiologyCenterName}</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {report.isUrgent && (
+                      <span className="px-1.5 py-0.5 bg-rose-600 text-white font-mono font-bold text-[9px] rounded uppercase animate-pulse">
+                        URGENT STAT
+                      </span>
+                    )}
+                    {report.isPortable && (
+                      <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 font-mono font-bold text-[9px] rounded border border-amber-300 uppercase">
+                        PORTABLE
+                      </span>
+                    )}
+                    {report.bodyParts.map((bp, i) => (
+                      <span key={i} className="px-1.5 py-0.5 bg-slate-100 text-slate-700 font-mono font-bold text-[10px] rounded border border-slate-200">
+                        {bp}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bottom Action Row */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                  <div className="font-sans text-[11px] text-slate-600">
+                    <div className="font-mono font-bold text-slate-500 text-[10px]">{formatDateDDMMYYYY(report.studyDate)}</div>
+                    <div className="font-medium text-slate-700 truncate max-w-[140px]">
+                      {report.assignedDoctorName ? `Dr. ${report.assignedDoctorName}` : 'Unassigned'}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <ReportOptionsPopover
+                      report={report}
+                      onSelectOption={handleSelectReportOption}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => openWorkspace(report)}
+                      className="btn-pacs"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[#009ef7]" />
+                      <span>PACS</span>
+                    </button>
+                    {session.role === 'SUPER_ADMIN' && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteReport(report.id)}
+                        className="p-1 text-rose-600 hover:bg-rose-50 rounded"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View: Full Spacious Table (>= sm) */}
+        <div className="hidden sm:block data-table-container flex-1 h-full overflow-y-auto bg-white">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th title="#" style={{ width: widths.idx, position: 'relative' }}>
+                  <span>#</span>
+                  <div className="col-resizer" onMouseDown={(e) => startResizing('idx', e.clientX, widths.idx)} />
+                </th>
+                <th title="Diagnostic Center" style={{ width: widths.center, position: 'relative' }}>
+                  <span>Diagnostic Center</span>
+                  <div className="col-resizer" onMouseDown={(e) => startResizing('center', e.clientX, widths.center)} />
+                </th>
+                <th title="Patient Information" style={{ width: widths.patient, position: 'relative' }}>
+                  <span>Patient Information</span>
+                  <div className="col-resizer" onMouseDown={(e) => startResizing('patient', e.clientX, widths.patient)} />
+                </th>
+                <th title="Gender / Age" style={{ width: widths.genderAge, position: 'relative' }}>
+                  <span>Gender / Age</span>
+                  <div className="col-resizer" onMouseDown={(e) => startResizing('genderAge', e.clientX, widths.genderAge)} />
+                </th>
+                <th title="Body Parts" style={{ width: widths.bodyParts, position: 'relative' }}>
+                  <span>Body Parts</span>
+                  <div className="col-resizer" onMouseDown={(e) => startResizing('bodyParts', e.clientX, widths.bodyParts)} />
+                </th>
+                <th title="Assigned Radiologist" style={{ width: widths.radiologist, position: 'relative' }}>
+                  <span>Assigned Radiologist</span>
+                  <div className="col-resizer" onMouseDown={(e) => startResizing('radiologist', e.clientX, widths.radiologist)} />
+                </th>
+                <th title="Status" style={{ width: widths.status, position: 'relative' }}>
+                  <span>Status</span>
+                  <div className="col-resizer" onMouseDown={(e) => startResizing('status', e.clientX, widths.status)} />
+                </th>
+                <th title="Study Date" style={{ width: widths.studyDate, position: 'relative' }}>
+                  <span>Study Date</span>
+                  <div className="col-resizer" onMouseDown={(e) => startResizing('studyDate', e.clientX, widths.studyDate)} />
+                </th>
+                <th title="Actions" style={{ width: widths.actions, textAlign: 'right', position: 'relative' }}>
+                  <span>Actions</span>
+                  <div className="col-resizer" onMouseDown={(e) => startResizing('actions', e.clientX, widths.actions)} />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredReports.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="text-center p-8 text-slate-500 italic font-sans">
+                    No matching radiology reports found.
+                  </td>
+                </tr>
+              ) : (
+                filteredReports.map((report, idx) => (
+                  <tr key={report.id} className={`hover:bg-slate-50/80 transition-colors ${report.isUrgent ? 'bg-rose-50/20' : ''}`}>
+                    <td title={String(idx + 1)} className="p-3 font-mono text-slate-400 font-bold">{idx + 1}</td>
+                    <td title={report.radiologyCenterName} className="p-3 font-bold text-slate-900 leading-snug">
+                      {report.radiologyCenterName}
+                    </td>
+                    <td title={`${report.fullName} (${report.patientNumber})`} className="p-3">
+                      <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5 flex-wrap">
+                        <span className={report.isUrgent ? "text-red-500 font-bold" : undefined}>{report.fullName}</span>{report.isPartial ? <span className="ml-2 text-[10px] text-amber-600 font-semibold">{report.signedStudyCount}/{report.studyCount || report.bodyParts?.length} reported</span> : null}
+                        {report.isUrgent && (
+                          <span className="px-1.5 py-0.5 bg-rose-600 text-white font-mono font-bold text-[9px] rounded uppercase animate-pulse">
+                            STAT URGENT
+                          </span>
+                        )}
+                        {report.isPortable && (
+                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 font-mono font-bold text-[9px] rounded border border-amber-300 uppercase">
+                            PORTABLE
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-mono text-[10px] text-slate-500 font-bold">{report.patientNumber}</div>
+                    </td>
+                    <td title={`${report.gender} / ${report.age}y`} className="p-3 text-slate-800 font-medium">
+                      {report.gender?.trim().toUpperCase().startsWith('F') ? 'F' : report.gender?.trim().toUpperCase().startsWith('O') ? 'O' : 'M'} / {report.age}y
+                    </td>
+                    <td title={report.bodyParts.join(', ')} className="p-3">
+                      <div className="flex flex-wrap gap-1">
+                        {report.bodyParts.map((bp, i) => (
+                          <span key={i} className="font-mono text-[10px] bg-slate-100 text-slate-700 font-bold px-1.5 py-0.5 rounded border border-slate-200">
+                            {bp}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td title={`Dr. ${report.assignedDoctorName || 'Unassigned'} | Ref: ${report.referringPhysicianName}`} className="p-3">
+                      <div className="font-bold text-slate-900">{report.assignedDoctorName}</div>
+                      <div className="text-[10px] text-slate-500">Ref: {report.referringPhysicianName}</div>
+                    </td>
+                    <td title={report.status} className="p-3">
+                      {report.status === 'Completed' ? (
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded font-mono inline-flex items-center gap-1">
+                          ● Signed
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold text-[10px] rounded font-mono inline-flex items-center gap-1">
+                          ▲ Pending
+                        </span>
+                      )}
+                    </td>
+                    <td title={formatDateDDMMYYYY(report.studyDate)} className="p-3 font-mono text-slate-500 text-[11px]">
+                      {formatDateDDMMYYYY(report.studyDate)}
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        <ReportOptionsPopover
+                          report={report}
+                          onSelectOption={handleSelectReportOption}
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => openWorkspace(report)}
+                          className="btn-pacs"
+                          title="PACS DICOM Workstation"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-[#009ef7]" />
+                          <span>PACS</span>
+                        </button>
+
+                        {session.role === 'DOCTOR' && report.claimStatus !== 'CLAIMED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleClaimReport(report)}
+                            className="px-2 py-1 bg-[#009ef7] hover:bg-[#008be0] text-white text-[11px] font-bold rounded"
+                          >
+                            Accept Case
+                          </button>
+                        )}
+
+                        {session.role === 'DOCTOR' && report.status === 'Pending' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenReviewSign(report)}
+                            className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold rounded"
+                          >
+                            Sign
+                          </button>
+                        )}
+
+                        {session.role === 'SUPER_ADMIN' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReport(report.id)}
+                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded hover:bg-rose-50"
+                            title="Delete Report"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      {/* Modals */}
+      {selectedReport && (
+        <ReportPreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          report={selectedReport}
+          withHeader={previewWithHeader}
+          selectedBodyPart={previewBodyPart}
+        />
+      )}
+
+      <NewXRayReportModal
+        isOpen={isNewReportModalOpen}
+        onClose={() => setIsNewReportModalOpen(false)}
+        onSave={handleCreateReport}
+      />
+
+      {selectedReport && (
+        <ReviewSignReportModal
+          isOpen={isReviewSignModalOpen}
+          onClose={() => setIsReviewSignModalOpen(false)}
+          report={selectedReport}
+          onSignComplete={() => loadStoreData()}
+        />
+      )}
+{/* Save Template Modal */}
+      {createTemplateOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+              <span className="font-mono font-bold text-xs uppercase tracking-wider text-slate-900">
+                Save Master Template
+              </span>
+              <button
+                type="button"
+                onClick={() => setCreateTemplateOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-200/50"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNewTemplate} className="p-4 flex flex-col gap-3.5 overflow-y-auto flex-1 text-xs">
+              <div className="flex flex-col gap-1">
+                <label className="font-bold text-slate-700 font-mono text-[11px]">Template Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={tmplTitle}
+                  onChange={(e) => setTmplTitle(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="font-bold text-slate-700 font-mono text-[11px]">Target Center *</label>
+                <select
+                  value={tmplCenterId}
+                  onChange={(e) => setTmplCenterId(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none"
+                >
+                  <option value="ALL">All Centers (Global Template)</option>
+                  {centers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.centerName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="font-bold text-slate-700 font-mono text-[11px]">Modality *</label>
+                <select
+                  value={tmplModality}
+                  onChange={(e) => setTmplModality(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none"
+                >
+                  {STUDY_MODALITY_OPTIONS.map((mod) => (
+                    <option key={mod} value={mod}>
+                      {mod}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600 uppercase">Body Part <span className="text-rose-500">*</span></label>
+                <input
+                  required
+                  type="text"
+                  value={tmplBodyPart}
+                  onChange={(e) => setTmplBodyPart(e.target.value)}
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-xs"
+                  placeholder="Must match case body part exactly (e.g. CHEST PA/AP)"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="font-bold text-slate-700 font-mono text-[11px]">Findings Content</label>
+                <textarea
+                  rows={3}
+                  value={tmplFindings}
+                  onChange={(e) => setTmplFindings(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none min-h-[75px]"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="font-bold text-slate-700 font-mono text-[11px]">Impression & Conclusion</label>
+                <textarea
+                  rows={2}
+                  value={tmplImpression}
+                  onChange={(e) => setTmplImpression(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:border-[#009ef7] focus:outline-none min-h-[60px]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setCreateTemplateOpen(false)}
+                  className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-[#009ef7] hover:bg-[#008be0] text-white font-bold rounded-lg transition-colors text-xs"
+                >
+                  Save Template
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function AllPatientReportsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>Loading Patient Reports...</div>}>
+      <AllPatientReportsContent />
+    </Suspense>
+  );
+}
