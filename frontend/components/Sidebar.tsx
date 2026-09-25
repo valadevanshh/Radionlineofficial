@@ -84,7 +84,7 @@ export default function Sidebar({
           { href: '/dashboard/center-invoices', label: 'Invoices', icon: Receipt },
           { href: '/dashboard/document-editor', label: 'Templates', icon: BookmarkPlus },
           { href: '/dashboard/dicom-viewer', label: 'PACS Studio', icon: Eye },
-          { href: '/dashboard/radiology', label: 'Center Info', icon: Building },
+          { href: '/dashboard/center-info', label: 'Center Info', icon: Building },
         ];
       case 'SUPER_ADMIN':
       default:
