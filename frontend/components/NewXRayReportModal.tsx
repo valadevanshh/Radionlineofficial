@@ -341,7 +341,7 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-md p-0 sm:p-4 overflow-y-auto">
-      <div className="relative bg-white text-slate-900 w-full max-w-xl rounded-t-2xl sm:rounded-3xl shadow-2xl my-0 sm:my-auto flex flex-col max-h-[92vh] sm:max-h-[90vh] border border-slate-100 overflow-hidden font-sans transition-all">
+      <div className="relative bg-white text-slate-900 w-full max-w-xl lg:max-w-4xl rounded-t-2xl sm:rounded-3xl shadow-2xl my-0 sm:my-auto flex flex-col max-h-[92vh] sm:max-h-[90vh] border border-slate-100 overflow-hidden font-sans transition-all">
         {/* Modern Header Bar */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3">
@@ -362,7 +362,7 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
         </div>
 
         {/* Responsive Form Body */}
-        <form ref={formBodyRef} noValidate onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-xs overflow-y-auto">
+        <form id="new-xray-report-form" ref={formBodyRef} noValidate onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1">
           {formError && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -370,396 +370,403 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
             </div>
           )}
 
-          {/* Patient Details */}
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2">
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Full Name *</label>
-                <input
-                  id="patient-fullname-input"
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. JOHN DOE"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-semibold uppercase transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Reg No / ID</label>
-                <input
-                  type="text"
-                  value={patientNumber}
-                  onChange={(e) => setPatientNumber(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 font-mono text-xs font-bold transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Gender *</label>
-                <select
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value as 'Male' | 'Female' | 'Other')}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-medium transition-all"
-                >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Age *</label>
-                <div className="flex items-center gap-1.5">
-                  <div className="flex items-center border border-slate-200 bg-slate-50/50 rounded-xl overflow-hidden focus-within:bg-white focus-within:border-[#009ef7] focus-within:ring-2 focus-within:ring-[#009ef7]/10 transition-all flex-1">
-                    <button
-                      type="button"
-                      onClick={handleDecrementAge}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer border-r border-slate-200 active:scale-95 transition-all select-none"
-                      title="Decrease age"
-                    >
-                      -
-                    </button>
+          {/* 2-Column Grid Layout for Desktop (>=1024px) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* Left Column: Patient Info & Diagnostics */}
+            <div className="space-y-4">
+              {/* Patient Details */}
+              <div className="space-y-3 p-3.5 bg-slate-50/50 rounded-2xl border border-slate-100">
+                <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Patient Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Full Name *</label>
                     <input
-                      type="number"
+                      id="patient-fullname-input"
+                      type="text"
                       required
-                      min={0}
-                      max={150}
-                      value={ageValue}
-                      placeholder="30"
-                      onChange={(e) => setAgeValue(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full text-center py-2 bg-transparent text-slate-900 focus:outline-none text-xs font-semibold"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="e.g. JOHN DOE"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-semibold uppercase transition-all"
                     />
-                    <button
-                      type="button"
-                      onClick={handleIncrementAge}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer border-l border-slate-200 active:scale-95 transition-all select-none"
-                      title="Increase age"
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Reg No / ID</label>
+                    <input
+                      type="text"
+                      value={patientNumber}
+                      onChange={(e) => setPatientNumber(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-mono text-xs font-bold transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Gender *</label>
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value as 'Male' | 'Female' | 'Other')}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-medium transition-all"
                     >
-                      +
-                    </button>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
 
-                  <select
-                    value={ageUnit}
-                    onChange={(e) => setAgeUnit(e.target.value as 'Years' | 'Months' | 'Days')}
-                    className="px-2.5 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-medium transition-all"
-                  >
-                    <option value="Years">Years</option>
-                    <option value="Months">Months</option>
-                    <option value="Days">Days</option>
-                  </select>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Age *</label>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center border border-slate-200 bg-white rounded-xl overflow-hidden focus-within:border-[#009ef7] focus-within:ring-2 focus-within:ring-[#009ef7]/10 transition-all flex-1">
+                        <button
+                          type="button"
+                          onClick={handleDecrementAge}
+                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer border-r border-slate-200 active:scale-95 transition-all select-none"
+                          title="Decrease age"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          required
+                          min={0}
+                          max={150}
+                          value={ageValue}
+                          placeholder="30"
+                          onChange={(e) => setAgeValue(e.target.value === '' ? '' : Number(e.target.value))}
+                          className="w-full text-center py-2 bg-transparent text-slate-900 focus:outline-none text-xs font-semibold"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleIncrementAge}
+                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer border-l border-slate-200 active:scale-95 transition-all select-none"
+                          title="Increase age"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <select
+                        value={ageUnit}
+                        onChange={(e) => setAgeUnit(e.target.value as 'Years' | 'Months' | 'Days')}
+                        className="px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-medium transition-all"
+                      >
+                        <option value="Years">Years</option>
+                        <option value="Months">Months</option>
+                        <option value="Days">Days</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Diagnostic & Doctor Assignment */}
+              <div className="space-y-3 p-3.5 bg-slate-50/50 rounded-2xl border border-slate-100">
+                <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Assignment & Modality</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Radiology Lab *</label>
+                    <select
+                      value={selectedCenterId}
+                      onChange={(e) => setSelectedCenterId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-medium transition-all"
+                    >
+                      {centers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.centerName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="relative">
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Assign Radiologist *
+                    </label>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setIsDoctorDropdownOpen(!isDoctorDropdownOpen)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-left focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-semibold flex items-center justify-between cursor-pointer transition-all"
+                    >
+                      <span className="truncate">
+                        {selectedDoctorIds.includes('ALL')
+                          ? 'ALL DOCTORS (Broadcast)'
+                          : `${selectedDoctorIds.length} Radiologist(s)`}
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+                    </button>
+
+                    {isDoctorDropdownOpen && (
+                      <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl p-2 space-y-1 text-xs max-h-48 overflow-y-auto rounded-xl">
+                        <label className="flex items-center gap-2 cursor-pointer font-bold text-[#009ef7] p-1.5 hover:bg-[#009ef7]/5 rounded-lg transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={selectedDoctorIds.includes('ALL')}
+                            onChange={() => handleToggleDoctorSelect('ALL')}
+                            className="w-4 h-4 rounded border-slate-300 text-[#009ef7] focus:ring-0"
+                          />
+                          <span>ALL DOCTORS (Broadcast)</span>
+                        </label>
+
+                        {doctors.map((d) => {
+                          const isChecked = selectedDoctorIds.includes(d.id);
+                          return (
+                            <label
+                              key={d.id}
+                              className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg font-medium text-slate-700 transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleToggleDoctorSelect(d.id)}
+                                className="w-3.5 h-3.5 rounded border-slate-300 text-[#009ef7] focus:ring-0"
+                              />
+                              <span>{d.fullName}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Modality *</label>
+                    <select
+                      value={modality}
+                      onChange={(e) => setModality(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#009ef7]/30"
+                    >
+                      {STUDY_MODALITY_OPTIONS.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Referring Physician
+                    </label>
+                    <input
+                      type="text"
+                      value={referringPhysicianName}
+                      onChange={(e) => setReferringPhysicianName(e.target.value)}
+                      placeholder="e.g. DR. ROBERT SMITH"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs uppercase font-medium transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Priority Flags */}
+                <div className="flex flex-wrap items-center gap-5 py-2 px-3 bg-white rounded-xl border border-slate-200">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isUrgent}
+                      onChange={(e) => setIsUrgent(e.target.checked)}
+                      className="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-0 cursor-pointer"
+                    />
+                    <span className={`text-xs font-semibold ${isUrgent ? 'text-rose-700 font-bold' : 'text-slate-700'}`}>
+                      Urgent (STAT)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isPortable}
+                      onChange={(e) => setIsPortable(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-0 cursor-pointer"
+                    />
+                    <span className={`text-xs font-semibold ${isPortable ? 'text-amber-800 font-bold' : 'text-slate-700'}`}>
+                      Portable
+                    </span>
+                  </label>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Diagnostic & Doctor Assignment */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Radiology Lab *</label>
-              <select
-                value={selectedCenterId}
-                onChange={(e) => setSelectedCenterId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-medium transition-all"
-              >
-                {centers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.centerName}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Right Column: Body Parts, Clinical History & Attachments */}
+            <div className="space-y-4">
+              {/* Select Body Parts / X-Ray Studies */}
+              <div className="space-y-2 p-3.5 bg-slate-50/50 rounded-2xl border border-slate-100">
+                <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Select Study / Body Part *</h4>
 
-            <div className="relative">
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Assign Radiologist *
-              </label>
-              
-              <button
-                type="button"
-                onClick={() => setIsDoctorDropdownOpen(!isDoctorDropdownOpen)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 text-left focus:bg-white focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs font-semibold flex items-center justify-between cursor-pointer transition-all"
-              >
-                <span className="truncate">
-                  {selectedDoctorIds.includes('ALL')
-                    ? 'ALL DOCTORS (Broadcast)'
-                    : `${selectedDoctorIds.length} Radiologist(s)`}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
-              </button>
-
-              {isDoctorDropdownOpen && (
-                <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl p-2 space-y-1 text-xs max-h-48 overflow-y-auto rounded-xl">
-                  <label className="flex items-center gap-2 cursor-pointer font-bold text-[#009ef7] p-1.5 hover:bg-[#009ef7]/5 rounded-lg transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={selectedDoctorIds.includes('ALL')}
-                      onChange={() => handleToggleDoctorSelect('ALL')}
-                      className="w-4 h-4 rounded border-slate-300 text-[#009ef7] focus:ring-0"
-                    />
-                    <span>ALL DOCTORS (Broadcast)</span>
-                  </label>
-
-                  {doctors.map((d) => {
-                    const isChecked = selectedDoctorIds.includes(d.id);
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {BODY_PART_OPTIONS.map((part) => {
+                    const isSelected = selectedBodyParts.includes(part);
                     return (
-                      <label
-                        key={d.id}
-                        className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg font-medium text-slate-700 transition-colors"
+                      <button
+                        key={part}
+                        type="button"
+                        onClick={() => handleToggleBodyPart(part)}
+                        className={`px-2.5 sm:px-3 py-1 rounded-xl text-[11px] font-medium transition-all cursor-pointer border ${
+                          isSelected
+                            ? 'bg-[#009ef7] border-[#009ef7] text-white shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleToggleDoctorSelect(d.id)}
-                          className="w-3.5 h-3.5 rounded border-slate-300 text-[#009ef7] focus:ring-0"
-                        />
-                        <span>{d.fullName}</span>
-                      </label>
+                        {isSelected ? '✓ ' : '+ '}
+                        {part}
+                      </button>
                     );
                   })}
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Priority & Machine Checkboxes */}
-          <div className="flex flex-wrap items-center gap-5 py-2.5 px-3.5 bg-slate-50/80 rounded-xl border border-slate-100">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={isUrgent}
-                onChange={(e) => setIsUrgent(e.target.checked)}
-                className="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-0 cursor-pointer"
-              />
-              <span className={`text-xs font-semibold ${isUrgent ? 'text-rose-700 font-bold' : 'text-slate-700'}`}>
-                Urgent (STAT)
-              </span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={isPortable}
-                onChange={(e) => setIsPortable(e.target.checked)}
-                className="w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-0 cursor-pointer"
-              />
-              <span className={`text-xs font-semibold ${isPortable ? 'text-amber-800 font-bold' : 'text-slate-700'}`}>
-                Portable
-              </span>
-            </label>
-          </div>
-
-          {/* Clinical History & Attachments (Side-by-Side Responsive) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {/* Left: Clinical History */}
-            <div className="flex flex-col">
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Clinical History</label>
-              <textarea
-                rows={3}
-                value={clinicalHistory}
-                onChange={(e) => setClinicalHistory(e.target.value)}
-                placeholder="Enter patient symptoms or clinical notes..."
-                className="w-full flex-1 p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs resize-none transition-all"
-              />
-            </div>
-
-            {/* Right: Upload Files (Optional) */}
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-                  <Upload className="w-3 h-3 text-[#009ef7]" />
-                  <span>Upload Files</span>
-                </label>
-                <span className="text-[10px] text-slate-400 font-normal">Optional</span>
-              </div>
-
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  if (e.dataTransfer.files) {
-                    handleProcessFiles(e.dataTransfer.files);
-                  }
-                }}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-3 text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 min-h-[75px] ${
-                  isDragging
-                    ? 'border-[#009ef7] bg-[#009ef7]/5'
-                    : 'border-slate-200 bg-slate-50/40 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*,.dcm,.pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files) {
-                      handleProcessFiles(e.target.files);
-                    }
-                  }}
-                />
-                <Upload className="w-4 h-4 text-[#009ef7]" />
-                <p className="font-semibold text-slate-700 text-[11px]">
-                  Drop files or <span className="text-[#009ef7] underline">Browse</span>
-                </p>
-                <p className="text-[9px] text-slate-400">
-                  Multiple Images / DICOM / PDF
-                </p>
-              </div>
-
-              {isUploading && (
-                <p className="text-[10px] text-[#009ef7] font-semibold mt-1 animate-pulse">
-                  Uploading files...
-                </p>
-              )}
-
-              {/* Thumbnails preview */}
-              {uploadedImages.length > 0 && (
-                <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-1">
-                  {uploadedImages.map((imgSrc, idx) => (
-                    <div key={idx} className="relative group shrink-0 w-9 h-9 rounded-lg border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center">
-                      {imgSrc.startsWith('data:image/') ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={imgSrc}
-                          alt={`File ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <FileText className="w-4 h-4 text-[#009ef7]" />
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveImage(idx);
-                        }}
-                        className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
-                      >
-                        <Trash2 className="w-3 h-3 text-rose-400" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          
-          {/* Study Modality */}
-          <div className="mb-3">
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Modality *</label>
-            <select
-              value={modality}
-              onChange={(e) => setModality(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#009ef7]/30"
-            >
-              {STUDY_MODALITY_OPTIONS.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Select Body Parts / X-Ray Studies */}
-          <div className="space-y-2">
-            <label className="block text-[11px] font-semibold text-slate-600">
-              Select Study / Body Part *
-            </label>
-
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {BODY_PART_OPTIONS.map((part) => {
-                const isSelected = selectedBodyParts.includes(part);
-                return (
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={customBodyPart}
+                    onChange={(e) => setCustomBodyPart(e.target.value)}
+                    placeholder="Custom study name..."
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs uppercase focus:border-[#009ef7] focus:outline-none transition-all"
+                  />
                   <button
-                    key={part}
                     type="button"
-                    onClick={() => handleToggleBodyPart(part)}
-                    className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] font-medium transition-all cursor-pointer border ${
-                      isSelected
-                        ? 'bg-[#009ef7] border-[#009ef7] text-white shadow-sm'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    onClick={handleAddCustomBodyPart}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs cursor-pointer transition-all shrink-0"
+                  >
+                    + Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Clinical History & Uploads */}
+              <div className="space-y-3 p-3.5 bg-slate-50/50 rounded-2xl border border-slate-100">
+                <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">History & Attachments</h4>
+                
+                <div className="flex flex-col">
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Clinical History</label>
+                  <textarea
+                    rows={2}
+                    value={clinicalHistory}
+                    onChange={(e) => setClinicalHistory(e.target.value)}
+                    placeholder="Enter patient symptoms or clinical notes..."
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs resize-none transition-all"
+                  />
+                </div>
+
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
+                      <Upload className="w-3 h-3 text-[#009ef7]" />
+                      <span>Upload Files</span>
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-normal">Optional</span>
+                  </div>
+
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragging(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      if (e.dataTransfer.files) {
+                        handleProcessFiles(e.dataTransfer.files);
+                      }
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-xl p-3 text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer min-h-[70px] ${
+                      isDragging
+                        ? 'border-[#009ef7] bg-[#009ef7]/5'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
-                    {isSelected ? '✓ ' : '+ '}
-                    {part}
-                  </button>
-                );
-              })}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,.dcm,.pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          handleProcessFiles(e.target.files);
+                        }
+                      }}
+                    />
+                    <Upload className="w-4 h-4 text-[#009ef7]" />
+                    <p className="font-semibold text-slate-700 text-[11px]">
+                      Drop files or <span className="text-[#009ef7] underline">Browse</span>
+                    </p>
+                  </div>
+
+                  {isUploading && (
+                    <p className="text-[10px] text-[#009ef7] font-semibold mt-1 animate-pulse">
+                      Uploading files...
+                    </p>
+                  )}
+
+                  {uploadedImages.length > 0 && (
+                    <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-1">
+                      {uploadedImages.map((imgSrc, idx) => (
+                        <div key={idx} className="relative group shrink-0 w-9 h-9 rounded-lg border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center">
+                          {imgSrc.startsWith('data:image/') ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={imgSrc}
+                              alt={`File ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <FileText className="w-4 h-4 text-[#009ef7]" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage(idx);
+                            }}
+                            className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                          >
+                            <Trash2 className="w-3 h-3 text-rose-400" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                type="text"
-                value={customBodyPart}
-                onChange={(e) => setCustomBodyPart(e.target.value)}
-                placeholder="Or type custom study name..."
-                className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 text-xs uppercase focus:bg-white focus:border-[#009ef7] focus:outline-none transition-all"
-              />
-              <button
-                type="button"
-                onClick={handleAddCustomBodyPart}
-                className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs cursor-pointer transition-all shrink-0"
-              >
-                + Add
-              </button>
-            </div>
-          </div>
-
-          {/* Referring Physician (Bottom Section) */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-              Referring Physician (Optional)
-            </label>
-            <input
-              type="text"
-              value={referringPhysicianName}
-              onChange={(e) => setReferringPhysicianName(e.target.value)}
-              placeholder="e.g. DR. ROBERT SMITH"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-[#009ef7] focus:ring-2 focus:ring-[#009ef7]/10 focus:outline-none text-xs uppercase font-medium transition-all"
-            />
-          </div>
-
-          {/* Footer Actions */}
-          <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-98 transition-all cursor-pointer text-center"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-2 rounded-xl text-xs font-semibold text-white bg-[#009ef7] hover:bg-[#0095e8] active:scale-98 disabled:opacity-60 transition-all cursor-pointer shadow-md shadow-[#009ef7]/20"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span>Create Patient Record</span>
-                </>
-              )}
-            </button>
           </div>
         </form>
+
+        {/* Pinned Sticky Footer (Always Reachable at 1440x900) */}
+        <div className="sticky bottom-0 bg-white border-t border-slate-200 px-5 sm:px-6 py-3.5 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 shrink-0 z-10 shadow-lg">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-98 transition-all cursor-pointer text-center"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="new-xray-report-form"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-2 rounded-xl text-xs font-semibold text-white bg-[#009ef7] hover:bg-[#0095e8] active:scale-98 disabled:opacity-60 transition-all cursor-pointer shadow-md shadow-[#009ef7]/20"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" />
+                <span>Create Patient Record</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
