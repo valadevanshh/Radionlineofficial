@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { ApiClient, MyWorkResponse } from '@/lib/api-client';
 import { RadiologyStore, XRayReport } from '@/lib/radiology-store';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 type StatusFilter = '' | 'CLAIMED' | 'Completed';
 
@@ -214,7 +215,14 @@ export default function MyWorkPage() {
                         {(row.bodyParts || []).join(', ') || '—'}
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className={statusBadge(row.status)}>{row.status}</span>
+                        <StatusBadge
+                          status={row.status}
+                          isPartial={
+                            row.isPartial ||
+                            ((row.signedStudyCount ?? 0) > 0 &&
+                              (row.signedStudyCount ?? 0) < (row.studyCount ?? row.bodyParts?.length ?? 0))
+                          }
+                        />
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         <button

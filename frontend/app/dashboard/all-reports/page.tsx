@@ -34,6 +34,7 @@ import ReviewSignReportModal from '@/components/ReviewSignReportModal';
 import { STUDY_MODALITY_OPTIONS } from '@/components/NewXRayReportModal';
 import { ApiClient } from '@/lib/api-client';
 import { useResizableColumns } from '@/lib/use-resizable-columns';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 function AllPatientReportsContent() {
   const searchParams = useSearchParams();
@@ -517,15 +518,14 @@ function AllPatientReportsContent() {
                   </div>
 
                   <div>
-                    {report.status === 'Completed' ? (
-                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-md font-mono inline-flex items-center gap-1">
-                        ● Signed
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold text-[10px] rounded-md font-mono inline-flex items-center gap-1">
-                        ▲ Pending
-                      </span>
-                    )}
+                    <StatusBadge
+                      status={report.status}
+                      isPartial={
+                        report.isPartial ||
+                        ((report.signedStudyCount ?? 0) > 0 &&
+                          (report.signedStudyCount ?? 0) < (report.studyCount ?? report.bodyParts?.length ?? 0))
+                      }
+                    />
                   </div>
                 </div>
 
@@ -683,15 +683,14 @@ function AllPatientReportsContent() {
                       <div className="text-[10px] text-slate-500">Ref: {report.referringPhysicianName}</div>
                     </td>
                     <td title={report.status} className="p-3">
-                      {report.status === 'Completed' ? (
-                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded font-mono inline-flex items-center gap-1">
-                          ● Signed
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 bg-amber-100 text-amber-800 font-bold text-[10px] rounded font-mono inline-flex items-center gap-1">
-                          ▲ Pending
-                        </span>
-                      )}
+                      <StatusBadge
+                        status={report.status}
+                        isPartial={
+                          report.isPartial ||
+                          ((report.signedStudyCount ?? 0) > 0 &&
+                            (report.signedStudyCount ?? 0) < (report.studyCount ?? report.bodyParts?.length ?? 0))
+                        }
+                      />
                     </td>
                     <td title={formatDateDDMMYYYY(report.studyDate)} className="p-3 font-mono text-slate-500 text-[11px]">
                       {formatDateDDMMYYYY(report.studyDate)}
