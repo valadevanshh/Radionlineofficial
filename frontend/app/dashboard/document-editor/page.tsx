@@ -15,6 +15,8 @@ import {
 import { RadiologyStore, XRayReport, DocTemplate, RadiologyCenter } from '@/lib/radiology-store';
 import { ApiClient } from '@/lib/api-client';
 
+import { PageShell, PageHeader, StatusBadge } from '@/components/ui';
+
 export default function DocumentEditorStudioPage() {
   const [reports, setReports] = useState<XRayReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<XRayReport | null>(null);
@@ -140,7 +142,6 @@ export default function DocumentEditorStudioPage() {
     setTimeout(() => setSaveSuccessNotice(false), 3500);
   };
 
-
   const filteredReports = reports.filter(
     (r) =>
       r.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -149,158 +150,135 @@ export default function DocumentEditorStudioPage() {
   );
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
-      {/* Section Header */}
-      <div className="section-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="section-title">RADIOLOGY DOCUMENT & TEMPLATE STUDIO</span>
-          <span className="tag" style={{ background: 'var(--navy-light)', color: 'var(--navy)' }}>
-            EDITOR
-          </span>
-        </div>
+    <PageShell className="p-0">
+      <PageHeader
+        title={
+          <div className="flex items-center gap-2">
+            <BookmarkPlus className="w-5 h-5 text-[#009ef7]" />
+            <span>Radiology Document & Template Studio</span>
+          </div>
+        }
+        subtitle="Manage report templates, master findings library, and PACS report editor"
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpenCreateTemplate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+            >
+              <BookmarkPlus className="w-3.5 h-3.5 text-[#009ef7]" />
+              <span>Save Template</span>
+            </button>
 
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button
-            type="button"
-            onClick={handleOpenCreateTemplate}
-            className="btn btn-secondary btn-sm"
-          >
-            <BookmarkPlus size={13} />
-            <span>Save Template</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => openWorkspace(selectedReport)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+            >
+              <Activity className="w-3.5 h-3.5 text-slate-600" />
+              <span>PACS Viewer</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => openWorkspace(selectedReport)}
-            className="btn btn-secondary btn-sm"
-          >
-            <Activity size={13} />
-            <span>PACS Viewer</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => openWorkspace(selectedReport)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#009ef7] hover:bg-[#008be0] text-xs font-bold text-white shadow-xs cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Open Studio</span>
+            </button>
+          </div>
+        }
+      />
 
-          <button
-            type="button"
-            onClick={() => openWorkspace(selectedReport)}
-            className="btn btn-teal btn-sm"
-          >
-            <FileText size={13} />
-            <span>Open Studio</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Studio Body (Zero Outer Scroll) */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', gap: 0 }} className="flex-col md:flex-row">
-        
+      {/* Main Studio Body */}
+      <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
         {/* Left Side: Patient Selector Sidebar */}
-        <div
-          style={{
-            width: '100%',
-            maxWidth: 320,
-            borderRight: '1px solid var(--border)',
-            background: 'var(--surface)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            flexShrink: 0,
-          }}
-          className="w-full md:w-80"
-        >
-          <div style={{ padding: 8, borderBottom: '1px solid var(--border)', display: 'flex', gap: 6 }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Search size={12} style={{ position: 'absolute', left: 8, top: 8, color: 'var(--text-muted)' }} />
+        <div className="w-full md:w-80 border-r border-slate-200 bg-white flex flex-col overflow-hidden shrink-0">
+          <div className="p-2.5 border-b border-slate-200">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search patient, PAT-ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: '100%', paddingLeft: 26, fontSize: 11 }}
+                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-[#009ef7]"
               />
             </div>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
             {filteredReports.map((r) => (
               <div
                 key={r.id}
                 onClick={() => setSelectedReport(r)}
-                style={{
-                  padding: 8,
-                  borderRadius: 5,
-                  border: selectedReport?.id === r.id ? '1px solid var(--navy)' : '1px solid var(--border)',
-                  background: selectedReport?.id === r.id ? 'var(--navy-light)' : 'var(--surface)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 3,
-                }}
+                className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+                  selectedReport?.id === r.id
+                    ? 'border-[#009ef7] bg-sky-50/60'
+                    : 'border-slate-200 bg-white hover:bg-slate-50'
+                }`}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="mono" style={{ fontSize: 10, fontWeight: 700, color: 'var(--navy)' }}>
-                    {r.patientNumber}
-                  </span>
-                  <span className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{r.studyDate}</span>
+                <div className="flex justify-between items-center text-[10px] font-mono">
+                  <span className="font-bold text-[#009ef7]">{r.patientNumber}</span>
+                  <span className="text-slate-400">{r.studyDate}</span>
                 </div>
-                <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text)' }}>{r.fullName}</div>
-                <div className="mono" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{r.bodyParts.join(', ')}</div>
+                <div className="font-bold text-xs text-slate-900 mt-0.5">{r.fullName}</div>
+                <div className="text-[10px] font-mono text-slate-500">{r.bodyParts.join(', ')}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Right Side: Active Workspace & Templates */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 12, gap: 12 }}>
+        <div className="flex-1 flex flex-col overflow-y-auto p-4 space-y-4 bg-slate-50/50">
           {saveSuccessNotice && (
-            <div className="alert alert-success">
-              <Check size={16} />
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800 flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>New template created successfully! It is now available in your template library.</span>
             </div>
           )}
 
           {selectedReport ? (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
-                <div>
-                  <span className="tag" style={{ background: 'var(--navy)', color: '#fff', marginRight: 6 }}>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-xs">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-slate-900 text-white font-mono text-[10px] font-bold">
                     {selectedReport.patientNumber}
                   </span>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>
-                    {selectedReport.fullName}
-                  </span>
+                  <span className="font-bold text-sm text-slate-900">{selectedReport.fullName}</span>
                 </div>
-                <span className="tag" style={{ background: 'var(--amber-light)', color: 'var(--amber)' }}>
-                  {selectedReport.status}
-                </span>
+                <StatusBadge status={selectedReport.status} />
               </div>
 
-              <div className="mono" style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 6 }}>
-                <div>AGE/SEX: {selectedReport.age}/{selectedReport.gender}</div>
-                <div>CENTER: {selectedReport.radiologyCenterName}</div>
-                <div>DOCTOR: {selectedReport.assignedDoctorName}</div>
+              <div className="font-mono text-xs text-slate-600 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>AGE/SEX: <strong>{selectedReport.age}/{selectedReport.gender}</strong></div>
+                <div>CENTER: <strong>{selectedReport.radiologyCenterName}</strong></div>
+                <div>DOCTOR: <strong>{selectedReport.assignedDoctorName}</strong></div>
               </div>
 
-              <div style={{ display: 'flex', gap: 6, paddingTop: 6 }}>
+              <div className="flex items-center gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => openWorkspace(selectedReport)}
-                  className="btn btn-primary btn-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#009ef7] hover:bg-[#008be0] text-xs font-bold text-white shadow-xs cursor-pointer"
                 >
-                  <FileText size={13} />
+                  <FileText className="w-3.5 h-3.5" />
                   <span>Edit in DOC Studio</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleOpenCreateTemplate}
-                  className="btn btn-secondary btn-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer"
                 >
-                  <BookmarkPlus size={13} />
+                  <BookmarkPlus className="w-3.5 h-3.5 text-[#009ef7]" />
                   <span>Save New Template</span>
                 </button>
               </div>
             </div>
           ) : (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
+            <div className="p-8 text-center text-xs text-slate-400 italic bg-white rounded-xl border border-slate-200">
               Select a patient report from the list to start editing.
             </div>
           )}
@@ -441,7 +419,6 @@ export default function DocumentEditorStudioPage() {
           </div>
         </div>
       )}
-
-</div>
+    </PageShell>
   );
 }
