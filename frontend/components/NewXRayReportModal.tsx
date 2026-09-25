@@ -52,6 +52,7 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const formBodyRef = useRef<HTMLFormElement | null>(null);
 
@@ -98,6 +99,7 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
       setUploadedImages([]);
       setIsSubmitting(false);
       setIsDoctorDropdownOpen(false);
+      setFormError(null);
     }
   }, [isOpen]);
 
@@ -200,11 +202,12 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
     const fileList = Array.from(files);
     if (fileList.length === 0) return;
     setIsUploading(true);
+    setFormError(null);
 
     try {
       const processedPromises = fileList.map((file) => {
         if (!file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.dcm') && !file.type.endsWith('pdf')) {
-          alert(`File "${file.name}" format not supported.`);
+          setFormError(`File "${file.name}" format not supported.`);
           return Promise.resolve('');
         }
         return compressImageFile(file);
@@ -226,27 +229,28 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
 
     if (!fullName.trim()) {
       formBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      alert('Please enter Patient Full Name.');
+      setFormError('Please enter Patient Full Name.');
       document.getElementById('patient-fullname-input')?.focus();
       return;
     }
 
     if (!selectedCenterId) {
       formBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      alert('Please select a Radiology Lab.');
+      setFormError('Please select a Radiology Lab.');
       return;
     }
 
     if (!modality) {
-      alert('Please select a modality (X-Ray, CT, MRI, Sonography, or Blood Report).');
+      setFormError('Please select a modality (X-Ray, CT, MRI, Sonography, or Blood Report).');
       return;
     }
 
     if (selectedBodyParts.length === 0) {
-      alert('Please select at least one study / body part.');
+      setFormError('Please select at least one study / body part.');
       return;
     }
 
@@ -329,7 +333,7 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
       onClose();
     } catch (err: any) {
       console.error('Error creating patient record:', err);
-      alert(`Error creating patient record: ${err?.message || 'Unknown error'}`);
+      setFormError(`Error creating patient record: ${err?.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -359,7 +363,13 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
 
         {/* Responsive Form Body */}
         <form ref={formBodyRef} noValidate onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-xs overflow-y-auto">
-          
+          {formError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 font-semibold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{formError}</span>
+            </div>
+          )}
+
           {/* Patient Details */}
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

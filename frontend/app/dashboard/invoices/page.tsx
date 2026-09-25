@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Receipt, Lock, Unlock, CheckCircle2, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Receipt, Lock, Unlock, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 import { ApiClient } from '@/lib/api-client';
 import { RadiologyStore } from '@/lib/radiology-store';
+import { useConfirm, StatusBadge } from '@/components/ui';
 
 type InvoiceRow = {
   id: string;
@@ -20,6 +21,7 @@ type InvoiceRow = {
 };
 
 export default function SuperAdminInvoicesPage() {
+  const confirm = useConfirm();
   const [tab, setTab] = useState<'center' | 'doctor'>('center');
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [periods, setPeriods] = useState<any[]>([]);
@@ -31,6 +33,7 @@ export default function SuperAdminInvoicesPage() {
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const session = RadiologyStore.getSession();
 
@@ -58,7 +61,6 @@ export default function SuperAdminInvoicesPage() {
       setPricing(pr);
       if (!lockPeriod) {
         const now = new Date();
-        // Approximate IST YYYY-MM for default lock control (server uses Asia/Calcutta)
         const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         setLockPeriod(ym);
       }
@@ -80,44 +82,49 @@ export default function SuperAdminInvoicesPage() {
       const d = await ApiClient.getInvoice(id);
       setDetail(d);
     } catch (e: any) {
-      alert(e?.message || 'Failed to load invoice detail');
+      setError(e?.message || 'Failed to load invoice detail');
     }
   };
 
   const markStatus = async (id: string, status: 'paid' | 'pending') => {
     try {
       await ApiClient.updateInvoiceStatus(id, status);
+      setNotice(`Invoice status updated to ${status}.`);
+      setTimeout(() => setNotice(null), 3000);
       await load();
       if (selectedId === id) await openDetail(id);
     } catch (e: any) {
-      alert(e?.message || 'Failed to update status');
+      setError(e?.message || 'Failed to update status');
     }
   };
 
   const doLock = async (unlock = false) => {
     if (!lockPeriod) return;
-    const msg = unlock
-      ? `Unlock billing period ${lockPeriod}? New sign-offs can accrue again.`
-      : `Lock billing period ${lockPeriod}? Totals for this month become immutable.`;
-    if (!confirm(msg)) return;
+    const title = unlock ? `Unlock Billing Period ${lockPeriod}?` : `Lock Billing Period ${lockPeriod}?`;
+    const message = unlock
+      ? `Unlocking period ${lockPeriod} allows new sign-offs to accrue again.`
+      : `Locking period ${lockPeriod} makes totals for this month immutable.`;
+
+    const ok = await confirm({
+      title,
+      message,
+      confirmLabel: unlock ? 'Unlock Period' : 'Lock Period',
+      variant: unlock ? 'primary' : 'danger',
+    });
+    if (!ok) return;
+
     try {
       const res = await ApiClient.lockBillingPeriod(lockPeriod, unlock);
-      alert(
+      setNotice(
         unlock
           ? `Period ${res.period} unlocked.`
           : `Period ${res.period} locked. Invoices finalized: ${res.invoicesFinalized ?? 0}`
       );
+      setTimeout(() => setNotice(null), 4000);
       await load();
     } catch (e: any) {
-      alert(e?.message || 'Lock failed');
+      setError(e?.message || 'Lock operation failed');
     }
-  };
-
-  const statusBadge = (s: string) => {
-    const base = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide';
-    if (s === 'paid') return `${base} bg-emerald-50 text-emerald-700 border border-emerald-200`;
-    if (s === 'overdue') return `${base} bg-rose-50 text-rose-700 border border-rose-200`;
-    return `${base} bg-amber-50 text-amber-700 border border-amber-200`;
   };
 
   const periodOptions = useMemo(() => {
@@ -145,7 +152,7 @@ export default function SuperAdminInvoicesPage() {
           <button
             type="button"
             onClick={load}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </button>
@@ -165,14 +172,14 @@ export default function SuperAdminInvoicesPage() {
           <button
             type="button"
             onClick={() => doLock(false)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
           >
             <Lock className="w-3.5 h-3.5" /> Lock / Close Month
           </button>
           <button
             type="button"
             onClick={() => doLock(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
           >
             <Unlock className="w-3.5 h-3.5" /> Unlock
           </button>
@@ -192,7 +199,7 @@ export default function SuperAdminInvoicesPage() {
                 setSelectedId(null);
                 setDetail(null);
               }}
-              className={`px-4 py-2 text-xs font-bold uppercase tracking-wide border-b-2 -mb-px ${
+              className={`px-4 py-2 text-xs font-bold uppercase tracking-wide border-b-2 -mb-px cursor-pointer ${
                 tab === t
                   ? 'border-[#009ef7] text-[#009ef7]'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -208,7 +215,7 @@ export default function SuperAdminInvoicesPage() {
           <select
             value={periodFilter}
             onChange={(e) => setPeriodFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-mono bg-white"
+            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-mono bg-white"
           >
             <option value="">All periods</option>
             {periodOptions.map((p) => (
@@ -220,7 +227,7 @@ export default function SuperAdminInvoicesPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs bg-white"
+            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs bg-white"
           >
             <option value="">All statuses</option>
             <option value="paid">Paid</option>
@@ -229,77 +236,87 @@ export default function SuperAdminInvoicesPage() {
           </select>
         </div>
 
+        {notice && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs px-3 py-2 font-medium">
+            {notice}
+          </div>
+        )}
+
         {error && (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs px-3 py-2">{error}</div>
+          <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs px-3 py-2 font-medium">
+            {error}
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <div className="lg:col-span-3 rounded-xl border border-slate-200 bg-white overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase text-slate-500 font-bold">
-                <tr>
-                  <th className="px-3 py-2">Party</th>
-                  <th className="px-3 py-2">Period</th>
-                  <th className="px-3 py-2">Total</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2">Lock</th>
-                  <th className="px-3 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
+            <div className="overflow-x-auto min-w-full">
+              <table className="w-full text-left text-xs min-w-[500px]">
+                <thead className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase text-slate-500 font-bold">
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
-                      Loading…
-                    </td>
+                    <th className="px-3 py-2">Party</th>
+                    <th className="px-3 py-2">Period</th>
+                    <th className="px-3 py-2">Total</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2">Lock</th>
+                    <th className="px-3 py-2">Actions</th>
                   </tr>
-                ) : invoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-slate-400 italic">
-                      No invoices yet. Sign off a report to accrue charges.
-                    </td>
-                  </tr>
-                ) : (
-                  invoices.map((inv) => (
-                    <tr
-                      key={inv.id}
-                      className={`border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${
-                        selectedId === inv.id ? 'bg-sky-50/60' : ''
-                      }`}
-                      onClick={() => openDetail(inv.id)}
-                    >
-                      <td className="px-3 py-2 font-semibold text-slate-800">{inv.partyName}</td>
-                      <td className="px-3 py-2 font-mono">{inv.billingPeriod}</td>
-                      <td className="px-3 py-2 font-mono font-bold">₹{inv.totalAmount}</td>
-                      <td className="px-3 py-2">
-                        <span className={statusBadge(inv.status)}>{inv.status}</span>
-                      </td>
-                      <td className="px-3 py-2">{inv.locked ? '🔒' : '—'}</td>
-                      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            title="Mark paid"
-                            onClick={() => markStatus(inv.id, 'paid')}
-                            className="p-1 rounded border border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            title="Mark pending"
-                            onClick={() => markStatus(inv.id, 'pending')}
-                            className="p-1 rounded border border-amber-200 text-amber-700 hover:bg-amber-50"
-                          >
-                            <Clock className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
+                        Loading…
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : invoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-8 text-center text-slate-400 italic">
+                        No invoices yet. Sign off a report to accrue charges.
+                      </td>
+                    </tr>
+                  ) : (
+                    invoices.map((inv) => (
+                      <tr
+                        key={inv.id}
+                        className={`border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${
+                          selectedId === inv.id ? 'bg-sky-50/60' : ''
+                        }`}
+                        onClick={() => openDetail(inv.id)}
+                      >
+                        <td className="px-3 py-2.5 font-semibold text-slate-800">{inv.partyName}</td>
+                        <td className="px-3 py-2.5 font-mono">{inv.billingPeriod}</td>
+                        <td className="px-3 py-2.5 font-mono font-bold">₹{inv.totalAmount}</td>
+                        <td className="px-3 py-2.5">
+                          <StatusBadge status={inv.status.toUpperCase()} />
+                        </td>
+                        <td className="px-3 py-2.5">{inv.locked ? '🔒' : '—'}</td>
+                        <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              title="Mark paid"
+                              onClick={() => markStatus(inv.id, 'paid')}
+                              className="p-1 rounded border border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Mark pending"
+                              onClick={() => markStatus(inv.id, 'pending')}
+                              className="p-1 rounded border border-amber-200 text-amber-700 hover:bg-amber-50 cursor-pointer"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-3 sm:p-4 min-h-[280px]">
@@ -311,9 +328,9 @@ export default function SuperAdminInvoicesPage() {
               <div className="space-y-3">
                 <div>
                   <div className="text-sm font-bold text-slate-900">{detail.partyName}</div>
-                  <div className="text-[11px] font-mono text-slate-500">
-                    {detail.id} · {detail.billingPeriod} ·{' '}
-                    <span className={statusBadge(detail.status)}>{detail.status}</span>
+                  <div className="text-[11px] font-mono text-slate-500 flex items-center gap-2 mt-1">
+                    <span>{detail.id}</span> · <span>{detail.billingPeriod}</span> ·{' '}
+                    <StatusBadge status={detail.status.toUpperCase()} />
                   </div>
                   <div className="mt-1 text-lg font-bold font-mono text-slate-900">
                     ₹{detail.totalAmount}{' '}
@@ -364,7 +381,6 @@ export default function SuperAdminInvoicesPage() {
 
                 {detail.status === 'overdue' && (
                   <div className="flex items-start gap-2 text-[11px] text-rose-700 bg-rose-50 border border-rose-100 rounded-lg p-2">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     Unpaid and the next calendar month (IST) has started relative to {detail.billingPeriod}.
                   </div>
                 )}
@@ -376,3 +392,4 @@ export default function SuperAdminInvoicesPage() {
     </div>
   );
 }
+

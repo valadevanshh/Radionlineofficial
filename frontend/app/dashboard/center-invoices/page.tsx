@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Building2, RefreshCw, Receipt } from 'lucide-react';
 import { ApiClient } from '@/lib/api-client';
-import { RadiologyStore } from '@/lib/radiology-store';
+import { StatusBadge } from '@/components/ui';
 
 export default function CenterInvoicesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -38,13 +38,6 @@ export default function CenterInvoicesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const statusBadge = (s: string) => {
-    const base = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase';
-    if (s === 'paid') return `${base} bg-emerald-50 text-emerald-700 border border-emerald-200`;
-    if (s === 'overdue') return `${base} bg-rose-50 text-rose-700 border border-rose-200`;
-    return `${base} bg-amber-50 text-amber-700 border border-amber-200`;
-  };
-
   return (
     <div className="h-full overflow-auto p-4 sm:p-6 bg-[var(--bg)]">
       <div className="max-w-5xl mx-auto space-y-4">
@@ -64,7 +57,7 @@ export default function CenterInvoicesPage() {
           <button
             type="button"
             onClick={load}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold hover:bg-slate-50 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </button>
@@ -88,13 +81,13 @@ export default function CenterInvoicesPage() {
                     <button
                       type="button"
                       onClick={async () => setSelected(await ApiClient.getInvoice(inv.id))}
-                      className={`w-full text-left px-3 py-2.5 border-b border-slate-50 hover:bg-slate-50 ${
+                      className={`w-full text-left px-3 py-2.5 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${
                         selected?.id === inv.id ? 'bg-sky-50' : ''
                       }`}
                     >
                       <div className="flex justify-between items-center gap-2">
                         <span className="font-mono text-xs font-bold">{inv.billingPeriod}</span>
-                        <span className={statusBadge(inv.status)}>{inv.status}</span>
+                        <StatusBadge status={inv.status.toUpperCase()} />
                       </div>
                       <div className="mt-0.5 font-mono text-sm font-bold text-slate-900">₹{inv.totalAmount}</div>
                       {inv.locked && <div className="text-[10px] text-slate-400">Locked</div>}
@@ -118,8 +111,8 @@ export default function CenterInvoicesPage() {
                       <Receipt className="w-4 h-4 text-[#009ef7]" />
                       <h2 className="font-bold text-slate-900">{selected.partyName}</h2>
                     </div>
-                    <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-                      Period {selected.billingPeriod} · <span className={statusBadge(selected.status)}>{selected.status}</span>
+                    <div className="text-[11px] font-mono text-slate-500 mt-1 flex items-center gap-2">
+                      <span>Period {selected.billingPeriod}</span> · <StatusBadge status={selected.status.toUpperCase()} />
                     </div>
                   </div>
                   <div className="text-right">
@@ -139,28 +132,30 @@ export default function CenterInvoicesPage() {
                           <span>{day.serviceDate}</span>
                           <span className="font-mono">₹{day.dayTotal}</span>
                         </div>
-                        <table className="w-full text-[11px]">
-                          <thead>
-                            <tr className="text-slate-400 text-left">
-                              <th className="px-3 py-1">Patient</th>
-                              <th className="px-2 py-1">Study</th>
-                              <th className="px-2 py-1">Modality</th>
-                              <th className="px-2 py-1 text-right">₹</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {day.studies.map((s: any) => (
-                              <tr key={s.id} className="border-t border-slate-50">
-                                <td className="px-3 py-1.5">{s.patientName}</td>
-                                <td className="px-2 py-1.5">
-                                  #{s.studyIndex} {s.bodyPart}
-                                </td>
-                                <td className="px-2 py-1.5">{s.modality}</td>
-                                <td className="px-2 py-1.5 text-right font-mono font-bold">₹{s.amount}</td>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[11px] min-w-[320px]">
+                            <thead>
+                              <tr className="text-slate-400 text-left">
+                                <th className="px-3 py-1">Patient</th>
+                                <th className="px-2 py-1">Study</th>
+                                <th className="px-2 py-1">Modality</th>
+                                <th className="px-2 py-1 text-right">₹</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {day.studies.map((s: any) => (
+                                <tr key={s.id} className="border-t border-slate-50">
+                                  <td className="px-3 py-1.5">{s.patientName}</td>
+                                  <td className="px-2 py-1.5">
+                                    #{s.studyIndex} {s.bodyPart}
+                                  </td>
+                                  <td className="px-2 py-1.5">{s.modality}</td>
+                                  <td className="px-2 py-1.5 text-right font-mono font-bold">₹{s.amount}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -173,3 +168,4 @@ export default function CenterInvoicesPage() {
     </div>
   );
 }
+
