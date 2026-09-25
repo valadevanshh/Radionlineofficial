@@ -35,6 +35,7 @@ import { STUDY_MODALITY_OPTIONS } from '@/components/NewXRayReportModal';
 import { ApiClient } from '@/lib/api-client';
 import { useResizableColumns } from '@/lib/use-resizable-columns';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 function AllPatientReportsContent() {
   const searchParams = useSearchParams();
@@ -43,7 +44,11 @@ function AllPatientReportsContent() {
   const [reports, setReports] = useState<XRayReport[]>([]);
   const [centers, setCenters] = useState<RadiologyCenter[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [session, setSession] = useState<UserAccount>(RadiologyStore.getSession());
+  const [session, setSession] = useState<UserAccount | null>(null);
+
+  useEffect(() => {
+    setSession(RadiologyStore.getSession());
+  }, []);
 
   const [filterName, setFilterName] = useState('');
   const [filterGender, setFilterGender] = useState('ALL');
@@ -59,9 +64,9 @@ function AllPatientReportsContent() {
     genderAge: 110,
     bodyParts: 160,
     radiologist: 180,
-    status: 95,
+    status: 135,
     studyDate: 105,
-    actions: 160,
+    actions: 150,
   });
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -226,7 +231,7 @@ function AllPatientReportsContent() {
       if (filterDoctorId !== 'ALL' && r.assignedDoctorId !== filterDoctorId && r.referringPhysicianId !== filterDoctorId) return false;
       
       // Real-time disappearance: If logged in as Doctor, hide cases claimed by other doctors
-      if (session.role === 'DOCTOR' && session.doctorId) {
+      if (session?.role === 'DOCTOR' && session?.doctorId) {
         if (r.claimStatus === 'CLAIMED' && r.claimedByDoctorId && r.claimedByDoctorId !== session.doctorId) {
           return false;
         }
@@ -260,11 +265,11 @@ function AllPatientReportsContent() {
   };
 
   const handleCreateReport = async (newRep: Omit<XRayReport, 'id' | 'createdAt'>) => {
-    if (session.role === 'MANAGER') {
+    if (session?.role === 'MANAGER') {
       try {
         await ApiClient.submitApproval({
-          managerId: session.email,
-          managerName: session.name,
+          managerId: session?.email || '',
+          managerName: session?.name || '',
           actionType: 'CREATE_CASE',
           entityType: 'case',
           payload: newRep as Record<string, any>,
@@ -287,8 +292,8 @@ function AllPatientReportsContent() {
   };
 
   const handleClaimReport = async (report: XRayReport) => {
-    const currentDocId = session.doctorId || 'doc-1';
-    const currentDocName = session.name || 'DR. RADIOLOGIST';
+    const currentDocId = session?.doctorId || 'doc-1';
+    const currentDocName = session?.name || 'DR. RADIOLOGIST';
     try {
       const updated = await ApiClient.claimReport(report.id, currentDocId, currentDocName);
       RadiologyStore.saveReport(updated);
@@ -300,13 +305,15 @@ function AllPatientReportsContent() {
     }
   };
 
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
   const handleDeleteReport = async (id: string) => {
-    if (session.role === 'MANAGER') {
+    if (session?.role === 'MANAGER') {
       const rep = reports.find((r) => r.id === id);
       try {
         await ApiClient.submitApproval({
-          managerId: session.email,
-          managerName: session.name,
+          managerId: session?.email || '',
+          managerName: session?.name || '',
           actionType: 'DELETE_CASE',
           entityType: 'case',
           entityId: id,
@@ -319,15 +326,20 @@ function AllPatientReportsContent() {
       return;
     }
 
-    if (confirm('Are you sure you want to delete this X-Ray patient record?')) {
-      try {
-        await ApiClient.deleteReport(id);
-      } catch (err) {
-        console.warn('API delete error:', err);
-      }
-      RadiologyStore.deleteReport(id);
-      loadStoreData();
+    setDeleteTargetId(id);
+  };
+
+  const confirmDeleteReport = async () => {
+    if (!deleteTargetId) return;
+    const id = deleteTargetId;
+    setDeleteTargetId(null);
+    try {
+      await ApiClient.deleteReport(id);
+    } catch (err) {
+      console.warn('API delete error:', err);
     }
+    RadiologyStore.deleteReport(id);
+    loadStoreData();
   };
 
 
@@ -364,7 +376,7 @@ function AllPatientReportsContent() {
             <span className="hidden sm:inline">New Template</span>
           </button>
 
-          {(session.role === 'SUPER_ADMIN' || session.role === 'CENTER') && (
+          {(session?.role === 'SUPER_ADMIN' || session?.role === 'CENTER') && (
             <button
               type="button"
               onClick={() => setIsNewReportModalOpen(true)}
@@ -577,7 +589,7 @@ function AllPatientReportsContent() {
                       <Eye className="w-3.5 h-3.5 text-[#009ef7]" />
                       <span>PACS</span>
                     </button>
-                    {session.role === 'SUPER_ADMIN' && (
+                    {session?.role === 'SUPER_ADMIN' && (
                       <button
                         type="button"
                         onClick={() => handleDeleteReport(report.id)}
@@ -630,7 +642,7 @@ function AllPatientReportsContent() {
                   <span>Study Date</span>
                   <div className="col-resizer" onMouseDown={(e) => startResizing('studyDate', e.clientX, widths.studyDate)} />
                 </th>
-                <th title="Actions" style={{ width: widths.actions, textAlign: 'right', position: 'relative' }}>
+                <th title="Actions" style={{ width: widths.actions, textAlign: 'right', position: 'sticky', right: 0 }} className="bg-slate-50 shadow-2xs z-10">
                   <span>Actions</span>
                   <div className="col-resizer" onMouseDown={(e) => startResizing('actions', e.clientX, widths.actions)} />
                 </th>
@@ -695,7 +707,7 @@ function AllPatientReportsContent() {
                     <td title={formatDateDDMMYYYY(report.studyDate)} className="p-3 font-mono text-slate-500 text-[11px]">
                       {formatDateDDMMYYYY(report.studyDate)}
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right sticky right-0 bg-white shadow-2xs z-10">
                       <div className="inline-flex items-center gap-1.5 justify-end">
                         <ReportOptionsPopover
                           report={report}
@@ -712,7 +724,7 @@ function AllPatientReportsContent() {
                           <span>PACS</span>
                         </button>
 
-                        {session.role === 'DOCTOR' && report.claimStatus !== 'CLAIMED' && (
+                        {session?.role === 'DOCTOR' && report.claimStatus !== 'CLAIMED' && (
                           <button
                             type="button"
                             onClick={() => handleClaimReport(report)}
@@ -722,7 +734,7 @@ function AllPatientReportsContent() {
                           </button>
                         )}
 
-                        {session.role === 'DOCTOR' && report.status === 'Pending' && (
+                        {session?.role === 'DOCTOR' && report.status === 'Pending' && (
                           <button
                             type="button"
                             onClick={() => handleOpenReviewSign(report)}
@@ -732,7 +744,7 @@ function AllPatientReportsContent() {
                           </button>
                         )}
 
-                        {session.role === 'SUPER_ADMIN' && (
+                        {session?.role === 'SUPER_ADMIN' && (
                           <button
                             type="button"
                             onClick={() => handleDeleteReport(report.id)}
@@ -889,6 +901,18 @@ function AllPatientReportsContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        open={!!deleteTargetId}
+        title="Delete Patient Record"
+        message="Are you sure you want to delete this X-Ray patient record? This action cannot be undone."
+        confirmLabel="Delete Record"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={confirmDeleteReport}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

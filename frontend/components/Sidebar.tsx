@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { RadiologyStore, UserAccount, XRayReport } from '@/lib/radiology-store';
 import { ApiClient } from '@/lib/api-client';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -114,7 +115,7 @@ export default function Sidebar({
 
   const handleLogout = async () => {
     try {
-      const session = RadiologyStore.getSession?.() || RadiologyStore.getCurrentUser?.();
+      const session = RadiologyStore.getSession();
       const role = session?.role;
       if (role === 'DOCTOR') {
         const partial = await ApiClient.getMyPartialCases();
@@ -556,22 +557,19 @@ export default function Sidebar({
           >
             {SidebarContent}
           </div>
-        
-      {logoutGuard.open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-5 text-slate-900">
-            <h3 className="text-lg font-bold mb-2">Unfinished reports</h3>
-            <p className="text-sm text-slate-600 mb-4">{logoutGuard.message}</p>
-            <div className="flex justify-end gap-2">
-              <button type="button" className="px-3 py-2 rounded-lg border text-sm font-semibold" onClick={() => setLogoutGuard({ open: false, message: '' })}>Stay</button>
-              <button type="button" className="px-3 py-2 rounded-lg bg-rose-600 text-white text-sm font-semibold" onClick={doLogout}>Leave anyway</button>
-            </div>
-          </div>
-        </div>
+        </>
       )}
 
-    </>
-      )}
+      <ConfirmDialog
+        open={logoutGuard.open}
+        title="Unfinished Study Reports"
+        message={logoutGuard.message}
+        confirmLabel="Leave anyway"
+        cancelLabel="Stay & finish"
+        variant="danger"
+        onConfirm={doLogout}
+        onCancel={() => setLogoutGuard({ open: false, message: '' })}
+      />
 
       {/* Mobile Bottom Tab Bar — hidden on case workspace */}
       {!isWorkspaceRoute && (
@@ -587,7 +585,7 @@ export default function Sidebar({
           height: 48,
         }}
       >
-        {navItems.slice(0, 5).map((item) => {
+        {navItems.slice(0, 4).map((item) => {
           const Icon = item.icon;
           const isActive =
             pathname === item.href ||
@@ -619,6 +617,30 @@ export default function Sidebar({
             </Link>
           );
         })}
+        <button
+          type="button"
+          onClick={handleLogout}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px 2px',
+            gap: 2,
+            color: '#ef4444',
+            fontSize: 9,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <LogOut size={16} />
+          <span style={{ fontSize: 9 }}>Sign Out</span>
+        </button>
       </div>
       )}
     </>

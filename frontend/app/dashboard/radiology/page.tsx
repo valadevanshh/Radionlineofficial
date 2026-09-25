@@ -14,10 +14,12 @@ import {
 import { RadiologyStore, RadiologyCenter } from '@/lib/radiology-store';
 import AddRadiologyCenterModal from '@/components/AddRadiologyCenterModal';
 import { ApiClient } from '@/lib/api-client';
+import { useConfirm } from '@/components/ui';
 
 import { useResizableColumns } from '@/lib/use-resizable-columns';
 
 export default function RadiologyCentersPage() {
+  const confirm = useConfirm();
   const [centers, setCenters] = useState<RadiologyCenter[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -58,11 +60,11 @@ export default function RadiologyCentersPage() {
 
   const handleAddCenter = async (center: Omit<RadiologyCenter, 'id' | 'createdAt'>) => {
     const session = RadiologyStore.getSession();
-    if (session.role === 'MANAGER') {
+    if (session?.role === 'MANAGER') {
       try {
         await ApiClient.submitApproval({
-          managerId: session.email,
-          managerName: session.name,
+          managerId: session?.email || '',
+          managerName: session?.name || '',
           actionType: 'CREATE_CENTER',
           entityType: 'center',
           payload: center as Record<string, any>,
@@ -86,12 +88,12 @@ export default function RadiologyCentersPage() {
 
   const handleDeleteCenter = async (id: string) => {
     const session = RadiologyStore.getSession();
-    if (session.role === 'MANAGER') {
+    if (session?.role === 'MANAGER') {
       const target = centers.find((c) => c.id === id);
       try {
         await ApiClient.submitApproval({
-          managerId: session.email,
-          managerName: session.name,
+          managerId: session?.email || '',
+          managerName: session?.name || '',
           actionType: 'DELETE_CENTER',
           entityType: 'center',
           entityId: id,
@@ -104,15 +106,20 @@ export default function RadiologyCentersPage() {
       return;
     }
 
-    if (confirm('Are you sure you want to remove this Radiology Diagnostic Center?')) {
-      try {
-        await ApiClient.deleteCenter(id);
-      } catch (err) {
-        console.warn('API delete center error:', err);
-      }
-      RadiologyStore.deleteCenter(id);
-      loadCenters();
+    const ok = await confirm({
+      title: 'Remove Center',
+      message: 'Are you sure you want to remove this Radiology Diagnostic Center?',
+      confirmLabel: 'Remove Center',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await ApiClient.deleteCenter(id);
+    } catch (err) {
+      console.warn('API delete center error:', err);
     }
+    RadiologyStore.deleteCenter(id);
+    loadCenters();
   };
 
   return (

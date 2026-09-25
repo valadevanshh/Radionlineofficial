@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export default function ApprovalsPage() {
-  const [session, setSession] = useState<UserAccount>(DEMO_USERS[0]);
+  const [session, setSession] = useState<UserAccount | null>(null);
 
   const [approvals, setApprovals] = useState<PendingApproval[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +80,7 @@ export default function ApprovalsPage() {
   const handleApprove = async (approval: PendingApproval) => {
     setActionLoadingId(approval.id);
     try {
-      await ApiClient.approveChange(approval.id, session.name || 'Super Admin');
+      await ApiClient.approveChange(approval.id, session?.name || 'Super Admin');
       setToastMessage(`✓ Approved request for ${approval.entityType.toUpperCase()} (${approval.actionType})`);
       setTimeout(() => setToastMessage(null), 4000);
       await fetchApprovals();
@@ -96,7 +96,7 @@ export default function ApprovalsPage() {
     if (!rejectingId) return;
     setActionLoadingId(rejectingId);
     try {
-      await ApiClient.rejectChange(rejectingId, rejectionReason || 'Rejected by Super Admin', session.name || 'Super Admin');
+      await ApiClient.rejectChange(rejectingId, rejectionReason || 'Rejected by Super Admin', session?.name || 'Super Admin');
       setToastMessage(`✓ Request rejected`);
       setTimeout(() => setToastMessage(null), 4000);
       setRejectingId(null);
@@ -135,7 +135,7 @@ export default function ApprovalsPage() {
     }
   };
 
-  const isSuperAdmin = session.role === 'SUPER_ADMIN';
+  const isSuperAdmin = session?.role === 'SUPER_ADMIN';
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>

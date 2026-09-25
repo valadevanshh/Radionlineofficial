@@ -59,11 +59,11 @@ export default function DoctorsPage() {
 
   const handleAddDoctor = async (doctor: Omit<Doctor, 'id' | 'createdAt'>) => {
     const session = RadiologyStore.getSession();
-    if (session.role === 'MANAGER') {
+    if (session?.role === 'MANAGER') {
       try {
         await ApiClient.submitApproval({
-          managerId: session.email,
-          managerName: session.name,
+          managerId: session?.email || '',
+          managerName: session?.name || '',
           actionType: 'CREATE_DOCTOR',
           entityType: 'doctor',
           payload: doctor as Record<string, any>,
@@ -87,12 +87,12 @@ export default function DoctorsPage() {
 
   const handleDeleteDoctor = async (id: string) => {
     const session = RadiologyStore.getSession();
-    if (session.role === 'MANAGER') {
+    if (session?.role === 'MANAGER') {
       const target = doctors.find((d) => d.id === id);
       try {
         await ApiClient.submitApproval({
-          managerId: session.email,
-          managerName: session.name,
+          managerId: session?.email || '',
+          managerName: session?.name || '',
           actionType: 'DELETE_DOCTOR',
           entityType: 'doctor',
           entityId: id,

@@ -24,6 +24,8 @@ import { ApiClient, RevenueSummary } from '@/lib/api-client';
 import DataTape, { Metric } from '@/components/DataTape';
 import NewXRayReportModal from '@/components/NewXRayReportModal';
 import { useResizableColumns } from '@/lib/use-resizable-columns';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { PriorityBadge } from '@/components/ui/PriorityBadge';
 
 export default function DashboardOverviewPage() {
   const [reports, setReports] = useState<XRayReport[]>([]);
@@ -86,13 +88,14 @@ export default function DashboardOverviewPage() {
   }, []);
 
   const completedCount = reports.filter((r) => r.status === 'Completed').length;
-  const pendingCount = reports.filter((r) => r.status === 'Pending').length;
+  const pendingCount = reports.filter((r) => r.status !== 'Completed').length;
+  const urgentCount = reports.filter((r) => r.isUrgent && r.status !== 'Completed').length;
 
   const metrics: Metric[] = [
     { label: 'TOTAL CASES', value: String(reports.length), delta: 'Live', trend: 'up', color: 'navy' },
     { label: 'COMPLETED', value: String(completedCount), delta: 'Live', trend: 'up', color: 'teal' },
     { label: 'PENDING REVIEW', value: String(pendingCount), delta: 'Live', trend: 'down', color: 'amber' },
-    { label: 'STAT URGENT', value: String(pendingCount), delta: 'STAT', trend: 'neutral', color: 'red' },
+    { label: 'STAT URGENT', value: String(urgentCount), delta: 'STAT', trend: 'neutral', color: 'red' },
     { label: 'RADIOLOGISTS', value: String(doctorCount), delta: 'Online', trend: 'up', color: 'blue' },
   ];
 
@@ -330,17 +333,14 @@ export default function DashboardOverviewPage() {
                     </span>
                   </td>
                   <td title={r.status} className="p-3">
-                    {r.status === 'Completed' ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded font-mono">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>Signed</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 font-bold text-[10px] rounded font-mono">
-                        <Clock className="w-3 h-3 text-amber-600" />
-                        <span>Pending</span>
-                      </span>
-                    )}
+                    <StatusBadge
+                      status={r.status}
+                      isPartial={
+                        r.isPartial ||
+                        ((r.signedStudyCount ?? 0) > 0 &&
+                          (r.signedStudyCount ?? 0) < (r.studyCount ?? r.bodyParts?.length ?? 0))
+                      }
+                    />
                   </td>
                   <td title={formatDateDDMMYYYY(r.studyDate)} className="p-3 font-mono text-slate-500 text-[11px]">
                     {formatDateDDMMYYYY(r.studyDate)}

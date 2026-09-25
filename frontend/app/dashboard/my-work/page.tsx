@@ -13,6 +13,7 @@ import {
 import { ApiClient, MyWorkResponse } from '@/lib/api-client';
 import { RadiologyStore, XRayReport } from '@/lib/radiology-store';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { formatDate } from '@/lib/format-date';
 
 type StatusFilter = '' | 'CLAIMED' | 'Completed';
 
@@ -126,7 +127,7 @@ export default function MyWorkPage() {
               className="text-xs font-semibold border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-800 min-w-[140px]"
             >
               <option value="">All my work</option>
-              <option value="CLAIMED">In progress (CLAIMED)</option>
+              <option value="CLAIMED">In Review</option>
               <option value="Completed">Completed</option>
             </select>
           </label>
@@ -176,9 +177,6 @@ export default function MyWorkPage() {
             <span className="text-[10px] font-bold uppercase text-slate-500 font-mono">
               {data ? `${data.total} case(s)` : '—'}
             </span>
-            {data?.dateField && (
-              <span className="text-[10px] text-slate-400 font-mono">date: {data.dateField}</span>
-            )}
           </div>
 
           {loading ? (
@@ -188,28 +186,28 @@ export default function MyWorkPage() {
               No claimed or completed cases match these filters.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full min-w-[620px] text-left text-xs">
+                <thead className="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold border-b border-slate-200">
                   <tr>
                     <th className="px-3 py-2">Patient</th>
                     <th className="px-3 py-2">Center</th>
-                    <th className="px-3 py-2">Study date</th>
-                    <th className="px-3 py-2">Body parts</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2 text-right">Action</th>
+                    <th className="px-3 py-2">Study Date</th>
+                    <th className="px-3 py-2">Body Parts</th>
+                    <th className="px-3 py-2 min-w-[130px]">Status</th>
+                    <th className="px-3 py-2 text-right sticky right-0 bg-slate-50 shadow-2xs">Action</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                   {data.items.map((row) => (
-                    <tr key={row.id} className="border-t border-slate-50 hover:bg-slate-50/80">
+                    <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-3 py-2.5">
                         <div className={`font-bold ${row.isUrgent ? "text-red-500" : "text-slate-900"}`}>{row.fullName}{row.isPartial || ((row.signedStudyCount||0)>0 && (row.signedStudyCount||0)<(row.studyCount||row.bodyParts?.length||0)) ? <span className="ml-2 text-[10px] font-semibold text-amber-600">{row.signedStudyCount || 0} of {row.studyCount || row.bodyParts?.length || 0} reported</span> : null}</div>
                         <div className="font-mono text-[10px] text-slate-500">{row.patientNumber}</div>
                       </td>
-                      <td className="px-3 py-2.5 text-slate-700">{row.radiologyCenterName}</td>
-                      <td className="px-3 py-2.5 font-mono text-slate-700">
-                        {row.studyDate || (row as XRayReport & { workDate?: string }).workDate}
+                      <td className="px-3 py-2.5 text-slate-700 font-medium">{row.radiologyCenterName}</td>
+                      <td className="px-3 py-2.5 font-mono text-slate-600">
+                        {formatDate(row.studyDate || (row as XRayReport & { workDate?: string }).workDate)}
                       </td>
                       <td className="px-3 py-2.5 text-slate-600 truncate max-w-[180px]">
                         {(row.bodyParts || []).join(', ') || '—'}
@@ -224,13 +222,13 @@ export default function MyWorkPage() {
                           }
                         />
                       </td>
-                      <td className="px-3 py-2.5 text-right">
+                      <td className="px-3 py-2.5 text-right sticky right-0 bg-white shadow-2xs">
                         <button
                           type="button"
                           onClick={() => openWorkspace(row)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#009ef7] hover:bg-[#008be0] text-white text-[10px] font-bold"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#009ef7] hover:bg-[#008be0] text-white text-[11px] font-bold transition-colors cursor-pointer"
                         >
-                          <ExternalLink className="w-3 h-3" /> Open
+                          <ExternalLink className="w-3.5 h-3.5" /> Open
                         </button>
                       </td>
                     </tr>

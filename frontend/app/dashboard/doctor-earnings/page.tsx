@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Stethoscope, RefreshCw, Wallet } from 'lucide-react';
 import { ApiClient } from '@/lib/api-client';
 import { RadiologyStore } from '@/lib/radiology-store';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export default function DoctorEarningsPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -36,13 +37,6 @@ export default function DoctorEarningsPage() {
   useEffect(() => {
     load();
   }, []);
-
-  const statusBadge = (s: string) => {
-    const base = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase';
-    if (s === 'paid') return `${base} bg-emerald-50 text-emerald-700 border border-emerald-200`;
-    if (s === 'overdue') return `${base} bg-rose-50 text-rose-700 border border-rose-200`;
-    return `${base} bg-amber-50 text-amber-700 border border-amber-200`;
-  };
 
   return (
     <div className="h-full overflow-auto p-4 sm:p-6 bg-[var(--bg)]">
@@ -93,7 +87,7 @@ export default function DoctorEarningsPage() {
                     >
                       <div className="flex justify-between items-center gap-2">
                         <span className="font-mono text-xs font-bold">{inv.billingPeriod}</span>
-                        <span className={statusBadge(inv.status)}>{inv.status}</span>
+                        <StatusBadge status={inv.status} />
                       </div>
                       <div className="mt-0.5 font-mono text-sm font-bold text-slate-900">₹{inv.totalAmount}</div>
                     </button>
@@ -112,7 +106,7 @@ export default function DoctorEarningsPage() {
                   <div>
                     <h2 className="font-bold text-slate-900">{selected.partyName}</h2>
                     <div className="text-[11px] font-mono text-slate-500">
-                      {selected.billingPeriod} · <span className={statusBadge(selected.status)}>{selected.status}</span>
+                      {selected.billingPeriod} · <StatusBadge status={selected.status} />
                     </div>
                   </div>
                   <div className="text-right">

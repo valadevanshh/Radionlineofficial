@@ -30,7 +30,7 @@ export function StatusBadge({ status, isPartial, className }: StatusBadgeProps) 
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center rounded-[var(--rn-radius-control)] border px-2 text-[12px] font-semibold leading-none',
+        'inline-flex h-6 items-center rounded-[var(--rn-radius-control)] border px-2 text-[12px] font-semibold leading-none whitespace-nowrap shrink-0',
         tone[kind],
         className
       )}

@@ -20,11 +20,15 @@ import {
 } from 'lucide-react';
 import { RadiologyStore, XRayReport } from '@/lib/radiology-store';
 import { ApiClient } from '@/lib/api-client';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { PriorityBadge } from '@/components/ui/PriorityBadge';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function LiveDashboardPage() {
   const [reports, setReports] = useState<XRayReport[]>([]);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [toastNotice, setToastNotice] = useState<string | null>(null);
+  const [declineTarget, setDeclineTarget] = useState<XRayReport | null>(null);
   const router = useRouter();
 
   const openWorkspace = (report: XRayReport) => {
@@ -89,12 +93,13 @@ export default function LiveDashboardPage() {
   }, []);
 
   const session = RadiologyStore.getSession();
-  const doctorName = session.name || 'DR. CONSULTANT';
+  const doctorEmail = session?.email || 'doctor@radio.com';
+  const doctorName = session?.name || 'DR. CONSULTANT';
 
   // Accept Study Action -> Claims study and DIRECTLY OPENS PACS VIEWER WITH PAST HISTORY
   const handleAcceptReport = async (report: XRayReport) => {
     try {
-      const updated = await ApiClient.claimReport(report.id, session.email, doctorName);
+      const updated = await ApiClient.claimReport(report.id, doctorEmail, doctorName);
       RadiologyStore.saveReport(updated);
       setReports((prev) => prev.map((r) => (r.id === report.id ? updated : r)));
       // DIRECTLY OPEN PACS VIEWER WITH IMAGE AND PAST HISTORY BANNER
@@ -103,10 +108,10 @@ export default function LiveDashboardPage() {
       console.warn('Claim error:', err);
       const fallback: XRayReport = {
         ...report,
-        assignedDoctorId: session.email,
+        assignedDoctorId: doctorEmail,
         assignedDoctorName: doctorName,
         claimStatus: 'CLAIMED',
-        claimedByDoctorId: session.email,
+        claimedByDoctorId: doctorEmail,
         claimedByDoctorName: doctorName,
       };
       RadiologyStore.saveReport(fallback);
@@ -117,10 +122,14 @@ export default function LiveDashboardPage() {
   };
 
   // Decline Study Action
-  const handleDeclineReport = async (report: XRayReport) => {
-    if (!confirm(`Are you sure you want to decline case ${report.patientNumber} (${report.fullName})?`)) {
-      return;
-    }
+  const handleDeclineReport = (report: XRayReport) => {
+    setDeclineTarget(report);
+  };
+
+  const executeDecline = async () => {
+    if (!declineTarget) return;
+    const report = declineTarget;
+    setDeclineTarget(null);
     try {
       await ApiClient.rejectReport(report.id, 'Doctor declined study from Live Feed');
       loadReports();
@@ -133,12 +142,14 @@ export default function LiveDashboardPage() {
     setTimeout(() => setToastNotice(null), 4000);
   };
 
+  const docId = session?.doctorId || session?.email;
+
   const incomingPendingReports = reports
-    .filter((r) => r.status === 'Pending' && r.claimStatus !== 'CLAIMED')
+    .filter((r) => r.status !== 'Completed' && r.claimStatus !== 'CLAIMED' && (!r.claimedByDoctorId || r.claimedByDoctorId === 'UNCLAIMED'))
     .sort((a, b) => { const au=a.isUrgent?0:1, bu=b.isUrgent?0:1; if(au!==bu) return au-bu; const ap=(a.isPartial||((a.signedStudyCount||0)>0&&(a.signedStudyCount||0)<(a.studyCount||a.bodyParts?.length||0)))?0:1; const bp=(b.isPartial||((b.signedStudyCount||0)>0&&(b.signedStudyCount||0)<(b.studyCount||b.bodyParts?.length||0)))?0:1; if(ap!==bp) return ap-bp; return 0; });
 
   const claimedMyReports = reports
-    .filter((r) => r.claimedByDoctorId === session.email || r.assignedDoctorId === session.email)
+    .filter((r) => r.status !== 'Completed' && (r.claimedByDoctorId === docId || r.claimedByDoctorId === session?.email || r.assignedDoctorId === docId || r.assignedDoctorId === session?.email))
     .sort((a, b) => { const au=a.isUrgent?0:1, bu=b.isUrgent?0:1; if(au!==bu) return au-bu; const ap=(a.isPartial||((a.signedStudyCount||0)>0&&(a.signedStudyCount||0)<(a.studyCount||a.bodyParts?.length||0)))?0:1; const bp=(b.isPartial||((b.signedStudyCount||0)>0&&(b.signedStudyCount||0)<(b.studyCount||b.bodyParts?.length||0)))?0:1; if(ap!==bp) return ap-bp; return 0; });
 
   return (
@@ -363,6 +374,17 @@ export default function LiveDashboardPage() {
         )}
 
       </div>
+
+      <ConfirmDialog
+        open={!!declineTarget}
+        title="Decline Case"
+        message={declineTarget ? `Are you sure you want to decline case ${declineTarget.patientNumber} (${declineTarget.fullName})?` : ''}
+        confirmLabel="Decline"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={executeDecline}
+        onCancel={() => setDeclineTarget(null)}
+      />
     </div>
   );
 }
