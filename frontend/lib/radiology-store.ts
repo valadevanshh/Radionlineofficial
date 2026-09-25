@@ -1,5 +1,7 @@
 'use client';
 
+import { RADIOLOGY_TEMPLATES } from './radiology-templates';
+
 export type UserRole = 'SUPER_ADMIN' | 'DOCTOR' | 'MANAGER' | 'CENTER';
 
 export function formatDateDDMMYYYY(dateStr?: string): string {
@@ -169,7 +171,18 @@ export interface DocTemplate {
   createdAt: string;
 }
 
-export const INITIAL_TEMPLATES: DocTemplate[] = [];
+export const INITIAL_TEMPLATES: DocTemplate[] = RADIOLOGY_TEMPLATES.map((t) => ({
+  id: `sys-${t.id}`,
+  title: t.title,
+  centerId: 'ALL',
+  centerName: 'System Standard',
+  modality: t.category,
+  bodyPart: t.bodyPart || 'GENERAL',
+  findings: t.findings,
+  impression: t.impression,
+  content: `<b>FINDINGS:</b><br/>${t.findings.replace(/\n/g, '<br/>')}<br/><br/><b>IMPRESSION:</b><br/>${t.impression.replace(/\n/g, '<br/>')}`,
+  createdAt: new Date().toISOString(),
+}));
 
 const STORAGE_KEYS = {
   REPORTS: 'radionline_reports_v1',
@@ -412,7 +425,17 @@ export const RadiologyStore = {
     if (typeof window === 'undefined') return INITIAL_TEMPLATES;
     this.init();
     const stored = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-    return stored ? JSON.parse(stored) : INITIAL_TEMPLATES;
+    const parsed: DocTemplate[] = stored ? JSON.parse(stored) : [];
+    
+    // Auto-merge system templates so all standard templates are always available
+    const existingIds = new Set(parsed.map((t) => t.id));
+    const missingSystem = INITIAL_TEMPLATES.filter((t) => !existingIds.has(t.id));
+    if (missingSystem.length > 0) {
+      const combined = [...parsed, ...missingSystem];
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(combined));
+      return combined;
+    }
+    return parsed.length > 0 ? parsed : INITIAL_TEMPLATES;
   },
 
   saveTemplate(template: Omit<DocTemplate, 'id' | 'createdAt'> & { id?: string }): DocTemplate {

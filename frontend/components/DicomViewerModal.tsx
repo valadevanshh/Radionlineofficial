@@ -148,65 +148,9 @@ export const SAMPLE_DICOM_SERIES = [
   },
 ];
 
-export interface ReportTemplate {
-  id: string;
-  name: string;
-  category: string;
-  title: string;
-  findings: string;
-  impression: string;
-}
-
-export const RADIOLOGY_TEMPLATES: ReportTemplate[] = [
-  {
-    id: 'chest-pa-normal',
-    name: 'Chest PA View (Normal)',
-    category: 'X-Ray Chest',
-    title: 'X-RAY CHEST PA VIEW EXAMINATION',
-    findings: `Trachea is central in position.\nLungs are clear bilaterally with no focal consolidation, pleural effusion, or pneumothorax.\nCardiomegaly is absent; cardiac shadow and mediastinal contours are within normal limits.\nHilar vascular shadows are normal.\nBoth costophrenic and cardiophrenic angles are sharp and clear.\nVisualized bony thorax and soft tissue structures appear unremarkable.`,
-    impression: `1. Normal Radiographic Examination of Chest.\n2. No active parenchymal disease.`,
-  },
-  {
-    id: 'hip-pelvis-trauma',
-    name: 'Pelvis & Both Hips AP/LAT',
-    category: 'X-Ray Pelvis',
-    title: 'FALL ( PBH AP & RT HIP AP/LAT PORTABLE )',
-    findings: `Digital radiographs of pelvis with both hips and right hip AP/Lateral projections evaluated.\n- No displaced cortical fracture or dislocation identified in right femoral neck or intertrochanteric region.\n- Joint space alignment is maintained. Minimal age-related degenerative osteophytes at superior acetabular margin.\n- No pelvic ring disruption. Sacroiliac joints normal.\n- Soft tissues unremarkable.`,
-    impression: `1. No evidence of acute bony fracture or dislocation in right hip joint or pelvic girdle.\n2. Mild bilateral hip osteoarthritis.`,
-  },
-  {
-    id: 'spine-lumbar-spondylosis',
-    name: 'Lumbar Spine AP/LAT (Spondylosis)',
-    category: 'X-Ray Spine',
-    title: 'LUMBAR SPINE AP & LATERAL EXAMINATION',
-    findings: `Lumbar lordosis is preserved.\nVertebral body heights and alignment are maintained.\nL4-L5 and L5-S1 intervertebral disc spaces show mild narrowing.\nAnterior osteophytic lipping seen at L3, L4, and L5 vertebral bodies.\nPedicles, transverse processes, and spinous processes appear intact.\nNo evidence of listhesis or bony destructive lesions.`,
-    impression: `1. Degenerative lumbar spondylosis with disc space narrowing at L4-L5 and L5-S1.\n2. No acute bony injury or fractures.`,
-  },
-  {
-    id: 'knee-bilateral-oa',
-    name: 'Knee Joint Bilateral (Osteoarthritis)',
-    category: 'X-Ray Extremities',
-    title: 'KNEE JOINT BILATERAL AP & LATERAL EXAMINATION',
-    findings: `Bilateral knee joints evaluated in standing weight-bearing position.\nMedial joint space narrowing observed in the right knee joint.\nSubchondral sclerosis and marginal osteophyte formation seen along the medial tibial plateau of the right knee.\nPatellofemoral joint space alignment is within normal limits.\nNo suprapatellar joint effusion or radiopaque loose bodies.\nVisualized bones show normal bone density.`,
-    impression: `1. Grade II Osteoarthritis of the Right Knee Joint (Kellgren-Lawrence Classification).\n2. Left knee joint appears radiologically normal.`,
-  },
-  {
-    id: 'brain-ct-normal',
-    name: 'Brain Non-Contrast CT Scan',
-    category: 'CT Scan',
-    title: 'BRAIN AXIAL NON-CONTRAST CT EXAMINATION',
-    findings: `Non-contrast CT of the brain demonstrates normal attenuation of cerebral and cerebellar parenchyma.\nNo evidence of intra-axial or extra-axial hemorrhage, mass effect, or midline shift.\nVentricles, sulci, and basal cisterns are prominent, consistent with age-related cerebral atrophy.\nNo acute ischemic infarct or vascular territory hypodensity detected.\nVisualized paranasal sinuses and mastoid air cells are clear.\nCalvarium is intact.`,
-    impression: `1. No evidence of acute intracranial hemorrhage or mass effect.\n2. Age-related cerebral cortical atrophy.`,
-  },
-  {
-    id: 'abdomen-kub-erect',
-    name: 'Abdomen & KUB Radiograph',
-    category: 'X-Ray Abdomen',
-    title: 'KUB & ERECT ABDOMEN RADIOGRAPH',
-    findings: `Psoas muscle shadows and renal outlines are bilaterally visualized and normal.\nNo radiopaque calculus seen along the urinary tract (KUB region).\nBowel gas pattern is within normal limits with no significant bowel dilatation.\nNo free air under diaphragm on erect radiograph.\nNo abnormal abdominal soft tissue calcifications.`,
-    impression: `1. Normal Erect Abdomen & KUB Radiograph.\n2. No evidence of bowel obstruction, perforation, or radiopaque renal stones.`,
-  },
-];
+import { RADIOLOGY_TEMPLATES, SystemReportTemplate as ReportTemplate } from '@/lib/radiology-templates';
+export type { ReportTemplate };
+export { RADIOLOGY_TEMPLATES };
 
 export type ToolMode =
   | 'none'
