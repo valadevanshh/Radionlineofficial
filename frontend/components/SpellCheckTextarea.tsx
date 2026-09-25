@@ -102,7 +102,7 @@ export default function SpellCheckTextarea({
       <div
         ref={backdropRef}
         aria-hidden="true"
-        className={`absolute inset-0 w-full p-1 text-slate-900 whitespace-pre-wrap break-words overflow-hidden pointer-events-none select-none z-0 ${fontClass}`}
+        className={`absolute inset-0 w-full p-0 text-slate-900 whitespace-pre-wrap break-words overflow-hidden pointer-events-none select-none z-0 ${fontClass}`}
         style={{
           boxSizing: 'border-box',
         }}
@@ -121,11 +121,16 @@ export default function SpellCheckTextarea({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         spellCheck={false}
-        className={`relative z-10 w-full p-1 bg-transparent text-transparent caret-slate-900 outline-none border-0 resize-none overflow-hidden whitespace-pre-wrap break-words touch-pan-y select-text ${fontClass}`}
+        className={`relative z-10 w-full p-0 bg-transparent text-transparent caret-slate-900 outline-none border-0 resize-none overflow-hidden whitespace-pre-wrap break-words touch-pan-y select-text ${fontClass}`}
         style={{
           boxSizing: 'border-box',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
+          border: 'none',
+          outline: 'none',
+          background: 'transparent',
+          boxShadow: 'none',
+          resize: 'none',
         }}
       />
     </div>

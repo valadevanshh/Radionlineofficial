@@ -613,12 +613,7 @@ export default function DicomViewerModal({
 
   const [imgSizes, setImgSizes] = useState<Record<number, { w: number; h: number }>>({});
 
-  const [annotations, setAnnotations] = useState<Record<number, AnnotationLine[]>>({
-    0: [],
-    1: [],
-    2: [],
-    3: [],
-  });
+  const [annotations, setAnnotations] = useState<Record<string, AnnotationLine[]>>({});
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentDraw, setCurrentDraw] = useState<Partial<AnnotationLine> | null>(null);
@@ -867,12 +862,14 @@ export default function DicomViewerModal({
   };
 
   const handleDeleteLastAnnotation = () => {
+    const activeSeries = seriesList[viewportSeries[activeViewportIdx] || 0] || seriesList[0];
+    const seriesKey = activeSeries.id || activeSeries.imageUrl || `series-${viewportSeries[activeViewportIdx] || 0}`;
     setAnnotations((prev) => {
-      const list = prev[activeViewportIdx] || [];
+      const list = prev[seriesKey] || [];
       if (list.length === 0) return prev;
       return {
         ...prev,
-        [activeViewportIdx]: list.slice(0, list.length - 1),
+        [seriesKey]: list.slice(0, list.length - 1),
       };
     });
   };
@@ -1037,9 +1034,12 @@ export default function DicomViewerModal({
         label,
       };
 
+      const currentSeries = seriesList[viewportSeries[vIdx] || 0] || seriesList[0];
+      const seriesKey = currentSeries.id || currentSeries.imageUrl || `series-${viewportSeries[vIdx] || 0}`;
+
       setAnnotations((prev) => ({
         ...prev,
-        [vIdx]: [...(prev[vIdx] || []), finalAnn],
+        [seriesKey]: [...(prev[seriesKey] || []), finalAnn],
       }));
     }
 
@@ -1672,14 +1672,14 @@ export default function DicomViewerModal({
               </select>
             </div>
 
-            {/* Editable Document Paper Canvas (A4 Format) */}
+            {/* Editable Document Paper Canvas (A4 Format: 210mm x 297mm @ 96dpi = 794px x 1123px) */}
             <div
-              className={`flex-1 min-h-0 p-2 sm:p-4 lg:p-6 xl:p-8 overflow-y-auto flex justify-center touch-pan-y overscroll-contain select-text print:bg-white print:p-0 print:overflow-visible print:block ${
+              className={`flex-1 min-h-0 p-3 sm:p-6 lg:p-8 overflow-y-auto flex justify-center touch-pan-y overscroll-contain select-text print:bg-white print:p-0 print:overflow-visible print:block ${
                 theme === 'dark' ? 'bg-[#090d16]' : 'bg-slate-300'
               }`}
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
-              <div className={`bg-white text-slate-900 w-full max-w-[794px] min-h-max sm:min-h-[1000px] p-4 sm:p-8 md:p-10 shadow-2xl border border-slate-300 text-xs sm:text-sm relative flex flex-col justify-between my-0 select-text rounded-xs print-area print:max-w-none print:w-full print:shadow-none print:border-none print:p-0 print:m-0 print:min-h-0 print:justify-start print:gap-4 ${reportFontFamily}`} data-print-ready="1" data-testid="report-print-area">
+              <div className={`bg-white text-slate-900 w-full max-w-[794px] min-h-[1123px] p-6 sm:p-10 md:p-12 shadow-2xl border border-slate-200 text-xs sm:text-sm relative flex flex-col justify-between my-0 select-text rounded-xs print-area print:max-w-none print:w-full print:shadow-none print:border-none print:p-0 print:m-0 print:min-h-0 print:justify-start print:gap-4 ${reportFontFamily}`} data-print-ready="1" data-testid="report-print-area">
                 
                 <div className="font-serif text-[13px] sm:text-[14px] leading-relaxed text-black">
                   {/* LETTERHEAD */}
@@ -1888,11 +1888,11 @@ export default function DicomViewerModal({
                             Impression
                           </h3>
                           {isActive ? (
-                            <textarea
+                            <SpellCheckTextarea
                               rows={3}
                               value={impressionText}
-                              onChange={(e) => setImpressionText(e.target.value)}
-                              className="w-full font-semibold text-black border border-slate-200 rounded px-2 py-1.5 focus:border-slate-400 focus:outline-none bg-transparent resize-y print:border-0 print:outline-none print:shadow-none print:p-0 print:rounded-none"
+                              onChange={(val) => setImpressionText(val)}
+                              fontClass={`${reportFontFamily} ${reportFontSize} font-bold leading-relaxed text-black`}
                             />
                           ) : (
                             <p className="whitespace-pre-wrap font-semibold text-[13px] sm:text-[14px] text-black">
@@ -2121,7 +2121,7 @@ export default function DicomViewerModal({
                     {(['bone', 'soft', 'lung', 'brain'] as const).map((p) => (
                       <button key={p} type="button" onClick={() => { handleApplyWwWlPreset(p); setToolsMoreOpen(false); }} className={`min-h-[36px] px-3 rounded-lg text-[12px] font-semibold capitalize ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'}`}>{p}</button>
                     ))}
-                    <button type="button" onClick={() => { setAnnotations((prev) => ({ ...prev, [activeViewportIdx]: [] })); setToolsMoreOpen(false); }} className="min-h-[36px] px-3 rounded-lg text-[12px] font-semibold text-rose-400">Clear</button>
+                    <button type="button" onClick={() => { const activeSeries = seriesList[viewportSeries[activeViewportIdx] || 0] || seriesList[0]; const seriesKey = activeSeries.id || activeSeries.imageUrl || `series-${viewportSeries[activeViewportIdx] || 0}`; setAnnotations((prev) => ({ ...prev, [seriesKey]: [] })); setToolsMoreOpen(false); }} className="min-h-[36px] px-3 rounded-lg text-[12px] font-semibold text-rose-400">Clear</button>
                   </div>
 
                   <p className="px-1 pt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Grid</p>
@@ -2202,7 +2202,10 @@ export default function DicomViewerModal({
                       preserveAspectRatio="none"
                       className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible"
                     >
-                      {(annotations[vIdx] || []).concat(currentDraw && activeViewportIdx === vIdx ? [currentDraw as AnnotationLine] : []).map((ann, aIdx) => {
+                      {(() => {
+                        const seriesKey = series.id || series.imageUrl || `series-${viewportSeries[vIdx] || 0}`;
+                        const seriesAnnotations = annotations[seriesKey] || [];
+                        return (seriesAnnotations).concat(currentDraw && activeViewportIdx === vIdx ? [currentDraw as AnnotationLine] : []).map((ann, aIdx) => {
                         if (ann.type === 'measure') {
                           const mx = (ann.x1 + ann.x2) / 2;
                           const my = (ann.y1 + ann.y2) / 2;
@@ -2278,7 +2281,8 @@ export default function DicomViewerModal({
                         }
 
                         return null;
-                      })}
+                      });
+                    })()}
                     </svg>
                   </div>
 
