@@ -1,4 +1,4 @@
-﻿/**
+/**
  * A4 Print Helper — builds a complete static report document (not a fragile live-DOM clone).
  * Opens a real-sized iframe, writes black-on-white A4 HTML with page breaks, then prints.
  */
@@ -61,20 +61,7 @@ export function buildReportPrintHtml(payload: PrintReportPayload, docTitle: stri
     })
     .join('\n');
 
-  const images = (payload.keyImageUrls || []).filter(Boolean);
-  const imagesHtml = images.length
-    ? `<section class="key-images">
-        <h3 class="sec">Key Images</h3>
-        <div class="img-grid">
-          ${images
-            .map(
-              (url, idx) =>
-                `<figure class="img-cell"><img src="${esc(url)}" alt="Key image ${idx + 1}" /></figure>`
-            )
-            .join('')}
-        </div>
-      </section>`
-    : '';
+  const imagesHtml = '';
 
   const letterhead =
     payload.withHeader === false

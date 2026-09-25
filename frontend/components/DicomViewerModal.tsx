@@ -343,8 +343,7 @@ export default function DicomViewerModal({
   const [impressionText, setImpressionText] = useState(
     report?.impression || (report?.impressionsByBodyPart && Object.values(report.impressionsByBodyPart).join('\n\n')) || ''
   );
-  const [embeddedSnapshots, setEmbeddedSnapshots] = useState<string[]>([]);
-  const [isCapturing, setIsCapturing] = useState(false);
+
 
   const norm = (s?: string | null) => (s || '').trim().toLowerCase();
   const caseModality = norm(report?.modality);
@@ -457,7 +456,6 @@ export default function DicomViewerModal({
         setBodyPartReports({});
         setBodyPartImpressions({});
         setActiveBodyPartIdx(0);
-        setEmbeddedSnapshots([]);
         setSelectedTemplateId('');
         return;
       }
@@ -535,17 +533,6 @@ export default function DicomViewerModal({
       setImpressionText(iMap[firstPart] || '');
       setSelectedTemplateId(matchedTemplateKey);
 
-      // Auto-include attached study images by default in report template
-      const defaultImages = Array.from(
-        new Set(
-          [
-            ...(report.uploadedImages || []),
-            ...(report.dicomSnapshots || []),
-            ...(report.dicomFileUrl ? [report.dicomFileUrl] : []),
-          ].filter((img) => img && typeof img === 'string' && img.trim() !== '')
-        )
-      );
-      setEmbeddedSnapshots(defaultImages);
     };
 
     initFromReport();
@@ -725,7 +712,7 @@ export default function DicomViewerModal({
       technique: finalTechniqueMap[currentPart],
       templateId: selectedTemplateId || undefined,
       clinicalNotes: report.clinicalNotes,
-      dicomSnapshots: embeddedSnapshots,
+      dicomSnapshots: [],
     };
 
     try {
@@ -746,7 +733,7 @@ export default function DicomViewerModal({
         reportsByBodyPart: finalReportsMap,
         impressionsByBodyPart: finalImpressionsMap,
         techniquesByBodyPart: finalTechniqueMap,
-        dicomSnapshots: embeddedSnapshots,
+        dicomSnapshots: [],
         studies: updatedStudies,
         isPartial: !allSigned && (result.signedStudyCount || 0) > 0,
         signedStudyCount: result.signedStudyCount,
@@ -1070,15 +1057,7 @@ export default function DicomViewerModal({
     }
   };
 
-  const handleCaptureSnapshotToDoc = () => {
-    setIsCapturing(true);
-    setTimeout(() => {
-      const snapshotUrl = (seriesList[viewportSeries[activeViewportIdx] || 0] || seriesList[0]).imageUrl;
-      setEmbeddedSnapshots((prev) => [...prev, snapshotUrl]);
-      if (onSaveSnapshot) onSaveSnapshot(snapshotUrl);
-      setIsCapturing(false);
-    }, 400);
-  };
+
 
   const numViewports = gridLayout === '1x1' ? 1 : gridLayout === '1x2' ? 2 : gridLayout === '2x1' ? 2 : 4;
 
@@ -1197,7 +1176,7 @@ export default function DicomViewerModal({
       modality: studyModality,
       studyParts: currentPart,
       clinicalHistory: (report?.clinicalNotes || '').trim(),
-      keyImageUrls: embeddedSnapshots,
+      keyImageUrls: [],
       studies,
       doctorName,
       doctorDegree,
@@ -1382,14 +1361,7 @@ export default function DicomViewerModal({
                 {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 {theme === 'dark' ? 'Light mode' : 'Dark mode'}
               </button>
-              <button
-                type="button"
-                onClick={() => { handleCaptureSnapshotToDoc(); setMoreMenuOpen(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 text-left ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`}
-              >
-                <Camera className="w-4 h-4" />
-                {isCapturing ? 'Capturing...' : 'Embed Snapshot'}
-              </button>
+
               <button
                 type="button"
                 onClick={() => { handleOpenSaveTemplate(); setMoreMenuOpen(false); }}
@@ -1798,29 +1770,7 @@ export default function DicomViewerModal({
                     </div>
                   )}
 
-                  {/* KEY IMAGES */}
-                  {embeddedSnapshots.length > 0 && (
-                    <section className="my-4">
-                      <h2 className="font-sans font-bold text-[13px] uppercase tracking-wide border-b border-black pb-1 mb-2 text-black">
-                        Key Images
-                      </h2>
-                      <div className="grid grid-cols-2 gap-2">
-                        {embeddedSnapshots.map((url, i) => (
-                          <div key={i} className="relative border border-slate-400 overflow-hidden bg-white">
-                            <img src={url} alt={`Key image ${i + 1}`} className="w-full h-28 object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => setEmbeddedSnapshots((prev) => prev.filter((_, idx) => idx !== i))}
-                              className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white p-1 rounded-full shadow-md cursor-pointer print:hidden no-print flex items-center justify-center"
-                              title="Remove image from report"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
+
 
                   {/* PER-STUDY SECTIONS */}
                   {(report?.bodyParts && report.bodyParts.length > 0 ? report.bodyParts : ['EXAMINATION']).map((part, idx) => {

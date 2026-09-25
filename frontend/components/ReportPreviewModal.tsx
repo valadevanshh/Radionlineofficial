@@ -242,30 +242,7 @@ export default function ReportPreviewModal({
             );
           })}
 
-          {/* 4.5. ATTACHED STUDY IMAGES */}
-          {(() => {
-            const images = [
-              ...(report.uploadedImages || []),
-              ...(report.dicomSnapshots || []),
-            ].filter((img, i, self) => self.indexOf(img) === i);
 
-            if (images.length === 0) return null;
-
-            return (
-              <div className="my-6 space-y-2 font-sans border-t border-b border-slate-200 py-3">
-                <p className="font-bold text-slate-800 text-xs uppercase tracking-wider">
-                  Attached Radiology Scans & Images ({images.length})
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {images.map((img, i) => (
-                    <div key={i} className="border border-slate-300 rounded overflow-hidden bg-slate-900 aspect-video">
-                      <img src={img} alt={`Study Image ${i + 1}`} className="w-full h-full object-contain" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
 
           {/* 5. BOTTOM COMPLIMENTS & DOCTOR SIGNATURE BLOCK WITH QR VERIFICATION */}
           <div className="mt-10 pt-4 font-serif text-xs border-t border-slate-300 space-y-4">
