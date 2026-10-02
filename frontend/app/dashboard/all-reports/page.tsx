@@ -27,12 +27,13 @@ import {
   UserAccount,
   formatDateDDMMYYYY,
 } from '@/lib/radiology-store';
+import { ApiClient, getAccessToken } from '@/lib/api-client';
 import ReportOptionsPopover from '@/components/ReportOptionsPopover';
+import { formatAsUUID } from '@/lib/uuid';
 import ReportPreviewModal from '@/components/ReportPreviewModal';
 import NewXRayReportModal from '@/components/NewXRayReportModal';
 import ReviewSignReportModal from '@/components/ReviewSignReportModal';
 import { STUDY_MODALITY_OPTIONS } from '@/components/NewXRayReportModal';
-import { ApiClient } from '@/lib/api-client';
 import { useResizableColumns } from '@/lib/use-resizable-columns';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -59,14 +60,14 @@ function AllPatientReportsContent() {
 
   const { widths, startResizing } = useResizableColumns({
     idx: 40,
-    center: 210,
-    patient: 190,
-    genderAge: 110,
-    bodyParts: 160,
-    radiologist: 180,
-    status: 135,
-    studyDate: 105,
-    actions: 150,
+    center: 190,
+    patient: 170,
+    genderAge: 95,
+    bodyParts: 140,
+    radiologist: 160,
+    status: 125,
+    studyDate: 100,
+    actions: 240,
   });
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -178,7 +179,9 @@ function AllPatientReportsContent() {
     // Real-Time WebSocket Connection
     let ws: WebSocket | null = null;
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const token = getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const wsUrl = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
       ws = new WebSocket(wsUrl);
       ws.onmessage = (event) => {
         try {
@@ -526,7 +529,7 @@ function AllPatientReportsContent() {
                         ({report.gender?.trim().toUpperCase().startsWith('F') ? 'F' : report.gender?.trim().toUpperCase().startsWith('O') ? 'O' : 'M'}/{report.age}y)
                       </span>
                     </div>
-                    <div className="font-mono text-[11px] text-slate-500 font-bold">{report.patientNumber}</div>
+                    <div className="font-mono text-[11px] text-slate-500 font-bold">{formatAsUUID(report.patientNumber || report.id)}</div>
                   </div>
 
                   <div>
@@ -568,15 +571,15 @@ function AllPatientReportsContent() {
                 </div>
 
                 {/* Bottom Action Row */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100 text-xs">
                   <div className="font-sans text-[11px] text-slate-600">
                     <div className="font-mono font-bold text-slate-500 text-[10px]">{formatDateDDMMYYYY(report.studyDate)}</div>
-                    <div className="font-medium text-slate-700 truncate max-w-[140px]">
+                    <div className="font-medium text-slate-700 truncate max-w-[150px]">
                       {report.assignedDoctorName ? `Dr. ${report.assignedDoctorName}` : 'Unassigned'}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap shrink-0 justify-end w-full sm:w-auto">
                     <ReportOptionsPopover
                       report={report}
                       onSelectOption={handleSelectReportOption}
@@ -589,11 +592,12 @@ function AllPatientReportsContent() {
                       <Eye className="w-3.5 h-3.5 text-[#009ef7]" />
                       <span>PACS</span>
                     </button>
-                    {session?.role === 'SUPER_ADMIN' && (
+                    {(session?.role === 'SUPER_ADMIN' || session?.role === 'MANAGER' || session?.role === 'CENTER') && (
                       <button
                         type="button"
                         onClick={() => handleDeleteReport(report.id)}
-                        className="p-1 text-rose-600 hover:bg-rose-50 rounded"
+                        className="p-1.5 text-rose-600 hover:bg-rose-100 bg-rose-50 border border-rose-200/80 rounded-lg transition-colors flex items-center justify-center shrink-0"
+                        title="Delete Report"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -642,7 +646,7 @@ function AllPatientReportsContent() {
                   <span>Study Date</span>
                   <div className="col-resizer" onMouseDown={(e) => startResizing('studyDate', e.clientX, widths.studyDate)} />
                 </th>
-                <th title="Actions" style={{ width: widths.actions, textAlign: 'right', position: 'sticky', right: 0 }} className="bg-slate-50 shadow-2xs z-10">
+                <th title="Actions" style={{ width: widths.actions, minWidth: 240, textAlign: 'right', position: 'sticky', right: 0 }} className="bg-slate-50 shadow-2xs z-10">
                   <span>Actions</span>
                   <div className="col-resizer" onMouseDown={(e) => startResizing('actions', e.clientX, widths.actions)} />
                 </th>
@@ -676,7 +680,7 @@ function AllPatientReportsContent() {
                           </span>
                         )}
                       </div>
-                      <div className="font-mono text-[10px] text-slate-500 font-bold">{report.patientNumber}</div>
+                      <div className="font-mono text-[10px] text-slate-500 font-bold">{formatAsUUID(report.patientNumber || report.id)}</div>
                     </td>
                     <td title={`${report.gender} / ${report.age}y`} className="p-3 text-slate-800 font-medium">
                       {report.gender?.trim().toUpperCase().startsWith('F') ? 'F' : report.gender?.trim().toUpperCase().startsWith('O') ? 'O' : 'M'} / {report.age}y
@@ -707,7 +711,7 @@ function AllPatientReportsContent() {
                     <td title={formatDateDDMMYYYY(report.studyDate)} className="p-3 font-mono text-slate-500 text-[11px]">
                       {formatDateDDMMYYYY(report.studyDate)}
                     </td>
-                    <td className="p-3 text-right sticky right-0 bg-white shadow-2xs z-10">
+                    <td style={{ width: widths.actions, minWidth: 240 }} className="p-3 text-right sticky right-0 bg-white shadow-2xs z-10">
                       <div className="inline-flex items-center gap-1.5 justify-end">
                         <ReportOptionsPopover
                           report={report}
@@ -744,11 +748,11 @@ function AllPatientReportsContent() {
                           </button>
                         )}
 
-                        {session?.role === 'SUPER_ADMIN' && (
+                        {(session?.role === 'SUPER_ADMIN' || session?.role === 'MANAGER' || session?.role === 'CENTER') && (
                           <button
                             type="button"
                             onClick={() => handleDeleteReport(report.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded hover:bg-rose-50"
+                            className="p-1.5 text-rose-600 hover:bg-rose-100 bg-rose-50 border border-rose-200/80 rounded-lg transition-colors flex items-center justify-center shrink-0"
                             title="Delete Report"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

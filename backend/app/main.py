@@ -36,10 +36,15 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+try:
+    from backend.app.security import decode_access_token
+except ImportError:
+    from app.security import decode_access_token
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,14 +93,27 @@ app.include_router(invoices.billing_router, prefix=settings.API_PREFIX)
 app.include_router(case_thread.router, prefix=settings.API_PREFIX)
 
 
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect, Query
+from typing import Optional
 try:
     from backend.app.websocket import manager
 except ImportError:
     from app.websocket import manager
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = Query(None)):
+    if token:
+        try:
+            payload = decode_access_token(token)
+            if not payload:
+                await websocket.close(code=1008)
+                return
+        except Exception:
+            await websocket.close(code=1008)
+            return
+    else:
+        await websocket.close(code=1008)
+        return
     await manager.connect(websocket)
     try:
         while True:

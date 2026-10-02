@@ -20,7 +20,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSave }: AddDoctorMod
   const [contactNumber, setContactNumber] = useState('');
   const [address, setAddress] = useState('');
   const [degree, setDegree] = useState('M.D. (Radiodiagnosis)');
-  const [registrationNumber, setRegistrationNumber] = useState('MCI Reg. No. 48291');
+  const [registrationNumber, setRegistrationNumber] = useState('');
   const [signatureName, setSignatureName] = useState('');
   const [profileName, setProfileName] = useState('');
 
@@ -55,7 +55,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSave }: AddDoctorMod
       contactNumber,
       address,
       degree: degree.trim() || 'M.D. (Radiodiagnosis)',
-      registrationNumber: registrationNumber.trim() || 'MCI Reg. No. 48291',
+      registrationNumber: registrationNumber.trim(),
       signatureUrl: signatureName
         ? `https://placehold.co/200x80/ffffff/000000.png?text=Dr.+${encodeURIComponent(firstName)}+Signature`
         : 'https://placehold.co/200x80/ffffff/000000.png?text=Default+Signature',

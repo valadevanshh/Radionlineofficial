@@ -62,10 +62,15 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
+try:
+    from backend.app.security import require_roles
+except ImportError:
+    from app.security import require_roles
+
 @router.get("/users", response_model=list[UserResponse])
 def get_all_users(
     db: Session = Depends(get_db),
-    _current_user: UserDB = Depends(get_current_user),
+    _current_user: UserDB = Depends(require_roles("SUPER_ADMIN", "MANAGER")),
 ):
     users = db.query(UserDB).all()
     return [user_public_dict(u) for u in users]
@@ -75,7 +80,7 @@ def get_all_users(
 def create_or_update_user(
     user: UserCreate,
     db: Session = Depends(get_db),
-    _current_user: UserDB = Depends(get_current_user),
+    _current_user: UserDB = Depends(require_roles("SUPER_ADMIN", "MANAGER")),
 ):
     existing = db.query(UserDB).filter(UserDB.email.ilike(user.email)).first()
     meta_payload = {

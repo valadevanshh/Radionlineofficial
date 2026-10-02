@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 try:
     from backend.app.database import get_db
@@ -11,7 +12,7 @@ try:
     )
     from backend.app.schemas import ApprovalSubmitRequest, ApprovalReviewRequest, ApprovalResponse
     from backend.app.websocket import manager as ws_manager
-    from backend.app.security import get_current_user, require_roles
+    from backend.app.security import get_current_user, require_roles, hash_password, looks_like_bcrypt
     from backend.app import pricing
 except ImportError:
     from app.database import get_db
@@ -20,7 +21,7 @@ except ImportError:
     )
     from app.schemas import ApprovalSubmitRequest, ApprovalReviewRequest, ApprovalResponse
     from app.websocket import manager as ws_manager
-    from app.security import get_current_user, require_roles
+    from app.security import get_current_user, require_roles, hash_password, looks_like_bcrypt
     from app import pricing
 
 
@@ -554,18 +555,27 @@ def _apply_doctor_action(action_type: str, entity_id: Optional[str], p: dict, db
         )
         db.add(doc)
 
+    raw_pw = p.get("password")
+    hashed_pw = None
+    if raw_pw:
+        hashed_pw = raw_pw if looks_like_bcrypt(raw_pw) else hash_password(raw_pw)
+
     login_email = doc.username or doc.email
-    if login_email and p.get("password"):
+    if login_email and hashed_pw:
         ex_u = db.query(UserDB).filter(UserDB.email.ilike(login_email)).first()
         if ex_u:
+            user_meta = dict(ex_u.metadata_ or {})
+            user_meta["password"] = hashed_pw
+            user_meta["doctorId"] = doc.id
             ex_u.name = doc.full_name
-            ex_u.metadata_ = {"password": p.get("password"), "doctorId": doc.id}
+            ex_u.metadata_ = user_meta
+            flag_modified(ex_u, "metadata_")
         else:
             db.add(UserDB(
                 email=login_email,
                 name=doc.full_name,
                 role="DOCTOR",
-                metadata_={"password": p.get("password"), "doctorId": doc.id}
+                metadata_={"password": hashed_pw, "doctorId": doc.id}
             ))
 
 
@@ -604,17 +614,25 @@ def _apply_center_action(action_type: str, entity_id: Optional[str], p: dict, db
         db.add(c)
 
     login_email = p.get("username") or c.email
-    if login_email and p.get("password"):
+    raw_pw = p.get("password")
+    if login_email and raw_pw:
+        hashed_pw = raw_pw if looks_like_bcrypt(raw_pw) else hash_password(raw_pw)
+        meta["password"] = hashed_pw
+        c.metadata_ = meta
         ex_u = db.query(UserDB).filter(UserDB.email.ilike(login_email)).first()
         if ex_u:
             ex_u.name = c.center_name
-            ex_u.metadata_ = {"password": p.get("password"), "centerId": c.id}
+            user_meta = dict(ex_u.metadata_ or {})
+            user_meta["password"] = hashed_pw
+            user_meta["centerId"] = c.id
+            ex_u.metadata_ = user_meta
+            flag_modified(ex_u, "metadata_")
         else:
             db.add(UserDB(
                 email=login_email,
                 name=c.center_name,
                 role="CENTER",
-                metadata_={"password": p.get("password"), "centerId": c.id}
+                metadata_={"password": hashed_pw, "centerId": c.id}
             ))
 
 

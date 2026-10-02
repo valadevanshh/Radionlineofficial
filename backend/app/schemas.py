@@ -39,7 +39,7 @@ class DoctorBase(BaseModel):
     signatureUrl: Optional[str] = None
     profileFileUrl: Optional[str] = None
     degree: Optional[str] = "M.D. (Radiodiagnosis)"
-    registrationNumber: Optional[str] = "MCI Reg. No. 48291"
+    registrationNumber: Optional[str] = None
 
 class DoctorCreate(DoctorBase):
     id: Optional[str] = None
@@ -90,7 +90,7 @@ class ReportBase(BaseModel):
     assignedDoctorId: Optional[str] = None
     assignedDoctorName: Optional[str] = None
     assignedDoctorDegree: Optional[str] = "M.D. (Radiodiagnosis)"
-    assignedDoctorRegNo: Optional[str] = "MCI Reg. No. 48291"
+    assignedDoctorRegNo: Optional[str] = None
     assignedDoctorIds: Optional[List[str]] = None
     claimedByDoctorId: Optional[str] = None
     claimedByDoctorName: Optional[str] = None
@@ -107,6 +107,7 @@ class ReportBase(BaseModel):
     docContent: Optional[str] = None
     dicomSnapshots: Optional[List[str]] = None
     uploadedImages: Optional[List[str]] = None
+    clinicalHistoryImages: Optional[List[str]] = None
     hasHeaderUrl: Optional[bool] = True
     hasNoHeaderUrl: Optional[bool] = True
     signatureApplied: Optional[bool] = False

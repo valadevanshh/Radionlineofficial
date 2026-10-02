@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Flag, MessageSquare, RefreshCw, Send, X, AlertTriangle } from 'lucide-react';
-import { ApiClient, ReportComment } from '@/lib/api-client';
+import { ApiClient, ReportComment, getAccessToken } from '@/lib/api-client';
 import { Doctor, RadiologyStore, UserAccount, XRayReport } from '@/lib/radiology-store';
 
 interface CaseActivityPanelProps {
@@ -90,7 +90,9 @@ export default function CaseActivityPanel({
     if (!open || !report?.id) return;
     let ws: WebSocket | null = null;
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const token = getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const wsUrl = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
       ws = new WebSocket(wsUrl);
       ws.onmessage = (event) => {
         try {

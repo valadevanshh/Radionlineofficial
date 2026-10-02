@@ -8,10 +8,14 @@ class Settings:
     VERSION: str = "1.0.0"
     API_PREFIX: str = "/api"
     
+    # Environment & Database Safety
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+    ALLOW_SQLITE_FALLBACK: bool = os.getenv("ALLOW_SQLITE_FALLBACK", "true").lower() == "true"
+
     # PostgreSQL Database URL
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://postgres:root@localhost:5432/postgres"
+        "postgresql://postgres:postgres@localhost:5432/postgres"
     )
     # Fallback to SQLite if PostgreSQL service is offline in local dev environment
     SQLITE_FALLBACK_URL: str = "sqlite:///./radionline.db"

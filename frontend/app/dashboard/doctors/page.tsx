@@ -15,6 +15,7 @@ import { RadiologyStore, Doctor } from '@/lib/radiology-store';
 import AddDoctorModal from '@/components/AddDoctorModal';
 import { ApiClient } from '@/lib/api-client';
 import { useConfirm } from '@/components/ui';
+import { formatAsUUID } from '@/lib/uuid';
 
 import { useResizableColumns } from '@/lib/use-resizable-columns';
 
@@ -200,6 +201,7 @@ export default function DoctorsPage() {
                           </div>
                           <div>
                             <div className="font-extrabold text-sm text-slate-900">{doc.fullName}</div>
+                            <div className="text-[10px] font-mono text-[#009ef7] font-bold">{formatAsUUID(doc.id)}</div>
                             <div className="text-[11px] text-slate-500 font-medium">{doc.degree || 'M.D. (Radiodiagnosis)'}</div>
                           </div>
                         </div>
@@ -267,6 +269,7 @@ export default function DoctorsPage() {
                               </div>
                               <div>
                                 <div className="font-bold text-slate-900">{doc.fullName}</div>
+                                <div className="font-mono text-[10px] text-slate-500 font-bold">{formatAsUUID(doc.id)}</div>
                                 <div className="text-[11px] text-slate-500 font-medium">
                                   {doc.degree || 'M.D. (Radiodiagnosis)'} • {doc.registrationNumber || 'MCI Reg. No. 48291'}
                                 </div>

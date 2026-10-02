@@ -278,10 +278,10 @@ export const ApiClient = {
     });
   },
 
-  async rejectReport(reportId: string, doctorId: string, doctorName?: string) {
+  async rejectReport(reportId: string, doctorId: string, reason?: string) {
     return fetchJson<{ status: string; message: string }>(`/reports/${reportId}/reject`, {
       method: 'POST',
-      body: JSON.stringify({ doctorId, doctorName }),
+      body: JSON.stringify({ doctorId, reason: reason || 'Doctor declined study' }),
     });
   },
 

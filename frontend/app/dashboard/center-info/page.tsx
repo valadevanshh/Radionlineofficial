@@ -42,10 +42,6 @@ export default function CenterInfoProfilePage() {
           c.username?.toLowerCase() === currentSession?.email?.toLowerCase()
       );
 
-      if (!myCenter && centersList.length > 0) {
-        myCenter = centersList[0];
-      }
-
       if (myCenter) {
         setCenter(myCenter);
         setCenterName(myCenter.centerName || '');

@@ -101,9 +101,9 @@ function VerifyReportContent() {
     );
   }
 
-  const doctorName = report.assignedDoctorName || report.claimedByDoctorName || 'DR. CONSULTANT RADIOLOGIST';
+  const doctorName = report.assignedDoctorName || report.claimedByDoctorName || 'CONSULTANT RADIOLOGIST';
   const doctorDegree = report.assignedDoctorDegree || 'M.D. (Radiodiagnosis)';
-  const doctorRegNo = report.assignedDoctorRegNo || 'MCI Reg. No. 48291';
+  const doctorRegNo = report.assignedDoctorRegNo || '';
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center p-3 sm:p-6 font-sans">

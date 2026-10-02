@@ -27,6 +27,9 @@ def get_engine():
             logger.info("Successfully connected to PostgreSQL database.")
         return engine
     except Exception as e:
+        if getattr(settings, "ENVIRONMENT", "development") == "production" or not getattr(settings, "ALLOW_SQLITE_FALLBACK", True):
+            logger.critical(f"Database connection failed in production mode: {e}")
+            raise e
         logger.warning(f"PostgreSQL connection failed ({e}). Falling back to SQLite for local execution.")
         sqlite_engine = create_engine(
             settings.SQLITE_FALLBACK_URL,

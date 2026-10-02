@@ -26,7 +26,7 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { RadiologyStore, UserAccount, XRayReport } from '@/lib/radiology-store';
-import { ApiClient } from '@/lib/api-client';
+import { ApiClient, getAccessToken } from '@/lib/api-client';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface SidebarProps {
@@ -157,7 +157,9 @@ export default function Sidebar({
     // Live WebSocket connection for notifications
     let ws: WebSocket | null = null;
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const token = getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const wsUrl = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
       ws = new WebSocket(wsUrl);
       ws.onmessage = (event) => {
         try {
@@ -571,77 +573,115 @@ export default function Sidebar({
         onCancel={() => setLogoutGuard({ open: false, message: '' })}
       />
 
-      {/* Mobile Bottom Tab Bar — hidden on case workspace */}
+      {/* Mobile Floating Bottom Dock — hidden on case workspace */}
       {!isWorkspaceRoute && (
-      <div
-        className="mobile-tabbar bg-white border-t border-slate-200 shadow-lg"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          display: 'none',
-          zIndex: 100,
-          height: 48,
-        }}
-      >
-        {navItems.slice(0, 4).map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            pathname === item.href ||
-            (item.href !== '/dashboard' && pathname.startsWith(item.href));
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => onCloseMobile?.()}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '4px 2px',
-                gap: 2,
-                color: isActive ? '#009ef7' : '#64748b',
-                fontSize: 9,
-                fontWeight: isActive ? 700 : 500,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                textDecoration: 'none',
-              }}
-            >
-              <Icon size={16} />
-              <span style={{ fontSize: 9 }}>{item.label}</span>
-            </Link>
-          );
-        })}
-        <button
-          type="button"
-          onClick={handleLogout}
+        <div
+          className="mobile-tabbar"
           style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
+            position: 'fixed',
+            bottom: 12,
+            left: 12,
+            right: 12,
+            display: 'none',
+            zIndex: 100,
+            height: 56,
+            borderRadius: 20,
+            backgroundColor: 'rgba(255, 255, 255, 0.96)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(226, 232, 240, 0.9)',
+            boxShadow: '0 12px 30px -4px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04)',
+            padding: '4px 6px',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4px 2px',
-            gap: 2,
-            color: '#ef4444',
-            fontSize: 9,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
+            justifyContent: 'space-around',
           }}
         >
-          <LogOut size={16} />
-          <span style={{ fontSize: 9 }}>Sign Out</span>
-        </button>
-      </div>
+          {navItems.slice(0, 4).map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              pathname === item.href ||
+              (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            
+            // Concise label mapping for clean mobile layout
+            let shortLabel = item.label;
+            if (item.label.includes('Dashboard') || item.label.includes('Overview')) shortLabel = 'Overview';
+            else if (item.label.includes('Pending')) shortLabel = 'Pending';
+            else if (item.label.includes('Reports')) shortLabel = 'Reports';
+            else if (item.label.includes('Invoices')) shortLabel = 'Invoices';
+            else if (item.label.includes('Templates')) shortLabel = 'Templates';
+            else if (item.label.includes('PACS')) shortLabel = 'PACS';
+            else if (item.label.includes('Doctors')) shortLabel = 'Doctors';
+            else if (item.label.includes('Centers')) shortLabel = 'Centers';
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => onCloseMobile?.()}
+                className={`mobile-tabbar-item outline-none focus:outline-none focus:ring-0 ${
+                  isActive ? 'bg-[#009ef7]/10' : 'hover:bg-slate-100/60'
+                }`}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '5px 0',
+                  borderRadius: 14,
+                  gap: 2,
+                  textDecoration: 'none',
+                  border: 'none',
+                  outline: 'none',
+                  transition: 'all 0.18s ease-in-out',
+                }}
+              >
+                <Icon
+                  size={18}
+                  className={`transition-transform duration-200 ${
+                    isActive ? 'text-[#009ef7] scale-110' : 'text-slate-500'
+                  }`}
+                />
+                <span
+                  style={{
+                    fontSize: 10,
+                    lineHeight: '12px',
+                    whiteSpace: 'nowrap',
+                    letterSpacing: '-0.01em',
+                  }}
+                  className={isActive ? 'font-bold text-[#009ef7]' : 'font-medium text-slate-500'}
+                >
+                  {shortLabel}
+                </span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mobile-tabbar-item outline-none focus:outline-none focus:ring-0 hover:bg-rose-50/70"
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '5px 0',
+              borderRadius: 14,
+              gap: 2,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              transition: 'all 0.18s ease-in-out',
+            }}
+          >
+            <LogOut size={18} className="text-rose-500 transition-transform duration-200 hover:translate-x-0.5" />
+            <span style={{ fontSize: 10, lineHeight: '12px', whiteSpace: 'nowrap' }} className="text-rose-500 font-bold">
+              Sign Out
+            </span>
+          </button>
+        </div>
       )}
     </>
   );

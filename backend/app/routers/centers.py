@@ -6,12 +6,12 @@ try:
     from backend.app.database import get_db
     from backend.app.models import CenterDB, UserDB
     from backend.app.schemas import CenterCreate, CenterResponse
-    from backend.app.security import get_current_user, hash_password, looks_like_bcrypt
+    from backend.app.security import get_current_user, require_roles, hash_password, looks_like_bcrypt
 except ImportError:
     from app.database import get_db
     from app.models import CenterDB, UserDB
     from app.schemas import CenterCreate, CenterResponse
-    from app.security import get_current_user, hash_password, looks_like_bcrypt
+    from app.security import get_current_user, require_roles, hash_password, looks_like_bcrypt
 from sqlalchemy.orm.attributes import flag_modified
 
 router = APIRouter(
@@ -43,7 +43,11 @@ def get_centers(db: Session = Depends(get_db)):
     return [db_to_schema(c) for c in centers]
 
 @router.post("", response_model=CenterResponse)
-def save_center(center_in: CenterCreate, db: Session = Depends(get_db)):
+def save_center(
+    center_in: CenterCreate,
+    db: Session = Depends(get_db),
+    _current_user: UserDB = Depends(require_roles("SUPER_ADMIN", "MANAGER")),
+):
     c_id = center_in.id or f"center-{int(time.time() * 1000)}"
     existing = db.query(CenterDB).filter(CenterDB.id == c_id).first()
 
@@ -107,7 +111,11 @@ def save_center(center_in: CenterCreate, db: Session = Depends(get_db)):
     return db_to_schema(saved_c)
 
 @router.delete("/{center_id}", status_code=204)
-def delete_center(center_id: str, db: Session = Depends(get_db)):
+def delete_center(
+    center_id: str,
+    db: Session = Depends(get_db),
+    _current_user: UserDB = Depends(require_roles("SUPER_ADMIN", "MANAGER")),
+):
     center = db.query(CenterDB).filter(CenterDB.id == center_id).first()
     if not center:
         raise HTTPException(status_code=404, detail="Center not found")

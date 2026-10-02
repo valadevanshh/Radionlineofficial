@@ -10,7 +10,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-db_url = os.getenv("DATABASE_URL", "postgresql://postgres:root@localhost:5432/postgres")
+db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
 
 print(f"Connecting to PostgreSQL at {db_url}...")
 try:

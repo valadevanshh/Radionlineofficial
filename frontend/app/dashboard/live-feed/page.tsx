@@ -19,10 +19,11 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { RadiologyStore, XRayReport } from '@/lib/radiology-store';
-import { ApiClient } from '@/lib/api-client';
+import { ApiClient, getAccessToken } from '@/lib/api-client';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { formatAsUUID } from '@/lib/uuid';
 
 export default function LiveDashboardPage() {
   const [reports, setReports] = useState<XRayReport[]>([]);
@@ -53,7 +54,9 @@ export default function LiveDashboardPage() {
     // Setup WebSockets for Real-Time Incoming Records
     let ws: WebSocket | null = null;
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const token = getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const wsUrl = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -93,31 +96,21 @@ export default function LiveDashboardPage() {
   }, []);
 
   const session = RadiologyStore.getSession();
-  const doctorEmail = session?.email || 'doctor@radio.com';
+  const docId = session?.doctorId || session?.email || '';
   const doctorName = session?.name || 'DR. CONSULTANT';
 
-  // Accept Study Action -> Claims study and DIRECTLY OPENS PACS VIEWER WITH PAST HISTORY
+  // Accept Study Action -> Claims study and OPENS PACS VIEWER ONLY IF CLAIM SUCCEEDS
   const handleAcceptReport = async (report: XRayReport) => {
     try {
-      const updated = await ApiClient.claimReport(report.id, doctorEmail, doctorName);
+      const updated = await ApiClient.claimReport(report.id, docId, doctorName);
       RadiologyStore.saveReport(updated);
       setReports((prev) => prev.map((r) => (r.id === report.id ? updated : r)));
-      // DIRECTLY OPEN PACS VIEWER WITH IMAGE AND PAST HISTORY BANNER
       openWorkspace(updated);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Claim error:', err);
-      const fallback: XRayReport = {
-        ...report,
-        assignedDoctorId: doctorEmail,
-        assignedDoctorName: doctorName,
-        claimStatus: 'CLAIMED',
-        claimedByDoctorId: doctorEmail,
-        claimedByDoctorName: doctorName,
-      };
-      RadiologyStore.saveReport(fallback);
-      setReports((prev) => prev.map((r) => (r.id === report.id ? fallback : r)));
-      // DIRECTLY OPEN PACS VIEWER WITH IMAGE AND PAST HISTORY BANNER
-      openWorkspace(fallback);
+      setToastNotice(err?.message || 'Study could not be claimed (already accepted by another radiologist).');
+      setTimeout(() => setToastNotice(null), 5000);
+      loadReports();
     }
   };
 
@@ -131,18 +124,15 @@ export default function LiveDashboardPage() {
     const report = declineTarget;
     setDeclineTarget(null);
     try {
-      await ApiClient.rejectReport(report.id, 'Doctor declined study from Live Feed');
+      await ApiClient.rejectReport(report.id, docId, 'Doctor declined study from Live Feed');
       loadReports();
     } catch (err) {
       console.warn('Decline error:', err);
-      RadiologyStore.deleteReport(report.id);
       loadReports();
     }
     setToastNotice(`Declined study ${report.patientNumber}`);
     setTimeout(() => setToastNotice(null), 4000);
   };
-
-  const docId = session?.doctorId || session?.email;
 
   const incomingPendingReports = reports
     .filter((r) => r.status !== 'Completed' && r.claimStatus !== 'CLAIMED' && (!r.claimedByDoctorId || r.claimedByDoctorId === 'UNCLAIMED'))
@@ -225,7 +215,7 @@ export default function LiveDashboardPage() {
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-extrabold font-mono text-[#009ef7] px-2 py-0.5 bg-[#009ef7]/10 rounded border border-[#009ef7]/20">
-                          {r.patientNumber}
+                          {formatAsUUID(r.patientNumber || r.id)}
                         </span>
                         {r.isUrgent && (
                           <span className="px-2 py-0.5 bg-rose-600 text-white font-mono font-bold text-[10px] rounded uppercase animate-pulse flex items-center gap-1">

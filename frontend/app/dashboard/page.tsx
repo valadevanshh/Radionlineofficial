@@ -46,7 +46,7 @@ export default function DashboardOverviewPage() {
     bodyParts: 120,
     status: 80,
     studyDate: 90,
-    actions: 110,
+    actions: 180,
   });
 
   const loadDashboardData = async () => {
@@ -120,19 +120,19 @@ export default function DashboardOverviewPage() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 text-slate-900">
       {/* Sleek Minimal Top Action & Telemetry Strip */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 shrink-0">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="p-1.5 bg-[#009ef7]/10 text-[#009ef7] border border-[#009ef7]/20 rounded-lg">
-            <Activity className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-sm font-extrabold text-slate-900 font-mono uppercase tracking-tight">
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 shrink-0">
+        <div className="flex items-center justify-between md:justify-start gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-[#009ef7]/10 text-[#009ef7] border border-[#009ef7]/20 rounded-lg shrink-0">
+              <Activity className="w-4 h-4" />
+            </div>
+            <h1 className="text-xs sm:text-sm font-extrabold text-slate-900 font-mono uppercase tracking-tight truncate">
               Radiology Portal Overview
             </h1>
           </div>
 
-          {/* High-Density Inline Metric Chips (No Bloated Cards) */}
-          <div className="flex items-center gap-1.5 flex-wrap font-mono text-[11px]">
+          {/* Desktop Metric Chips */}
+          <div className="hidden md:flex items-center gap-1.5 flex-wrap font-mono text-[11px]">
             <span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold rounded border border-slate-200">
               TOTAL: <strong className="text-slate-900">{reports.length}</strong>
             </span>
@@ -151,12 +151,25 @@ export default function DashboardOverviewPage() {
               RADIOLOGISTS: <strong>{doctorCount}</strong>
             </span>
           </div>
+
+          {/* Mobile Top New Case Button */}
+          <div className="flex md:hidden items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsNewReportModalOpen(true)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-transparent text-[#009ef7] border-[1.5px] border-[#009ef7] hover:bg-[#009ef7] hover:text-white text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all font-mono"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>New Case</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Desktop Action Buttons */}
+        <div className="hidden md:flex items-center gap-2 shrink-0">
           <Link
             href="/dashboard/all-reports"
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-mono rounded-lg transition-colors border border-slate-200 inline-flex items-center gap-1"
+            className="px-3 py-1.5 bg-transparent text-slate-700 border-[1.5px] border-slate-300 hover:bg-slate-100 hover:text-slate-900 text-xs font-bold font-mono rounded-lg transition-colors inline-flex items-center gap-1"
           >
             <span>All Reports ({reports.length})</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -165,25 +178,41 @@ export default function DashboardOverviewPage() {
           <button
             type="button"
             onClick={() => setIsNewReportModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#009ef7] hover:bg-[#008be0] text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-2xs cursor-pointer font-mono shrink-0"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-transparent text-[#009ef7] border-[1.5px] border-[#009ef7] hover:bg-[#009ef7] hover:text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer font-mono shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>New Case</span>
           </button>
         </div>
+
+        {/* Mobile Metric Cards Row */}
+        <div className="flex md:hidden items-center justify-between gap-2 pt-1 border-t border-slate-100 font-mono text-[10px]">
+          <div className="flex-1 bg-slate-100/80 p-1.5 rounded-lg text-center border border-slate-200/60">
+            <div className="text-slate-500 font-semibold text-[9px] uppercase">Total</div>
+            <div className="font-extrabold text-slate-900 text-xs">{reports.length}</div>
+          </div>
+          <div className="flex-1 bg-emerald-50/80 p-1.5 rounded-lg text-center border border-emerald-200/60">
+            <div className="text-emerald-700 font-semibold text-[9px] uppercase">Completed</div>
+            <div className="font-extrabold text-emerald-800 text-xs">{completedCount}</div>
+          </div>
+          <div className="flex-1 bg-amber-50/80 p-1.5 rounded-lg text-center border border-amber-200/60">
+            <div className="text-amber-700 font-semibold text-[9px] uppercase">Pending</div>
+            <div className="font-extrabold text-amber-800 text-xs">{pendingCount}</div>
+          </div>
+        </div>
       </div>
 
-      {/* Priority 7: Super Admin monthly revenue (real invoice totals) */}
+      {/* Priority 7: Super Admin monthly revenue */}
       {session?.role === 'SUPER_ADMIN' && (
-        <div className="bg-white border-b border-slate-200 px-4 py-2.5 shrink-0">
-          <div className="flex items-center justify-between gap-3 flex-wrap mb-1.5">
-            <div className="flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-emerald-600" />
+        <div className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 shrink-0">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <Wallet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="text-[11px] font-extrabold font-mono uppercase tracking-tight text-slate-800">
                 Monthly Revenue
               </span>
-              <span className="text-[10px] font-mono text-slate-500">
-                {revenue?.currentPeriod || '-'} | IST
+              <span className="text-[10px] font-mono text-slate-400">
+                ({revenue?.currentPeriod || '-'})
               </span>
             </div>
             <Link
@@ -193,53 +222,18 @@ export default function DashboardOverviewPage() {
               Invoices <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          {revenueError && (
-            <div className="text-[11px] text-rose-600 font-mono">{revenueError}</div>
-          )}
           {revenue && (
-            <>
-              <div className="flex items-center gap-1.5 flex-wrap font-mono text-[11px]">
-                <span className="px-2 py-0.5 bg-sky-50 text-sky-800 font-bold rounded border border-sky-200" title="Sum of center invoice totals this month">
-                  CENTER BILLING: <strong>₹{revenue.currentMonth.centerBilling}</strong>
-                </span>
-                <span className="px-2 py-0.5 bg-violet-50 text-violet-800 font-bold rounded border border-violet-200" title="Sum of doctor payout invoice totals this month">
-                  DOCTOR PAYOUTS: <strong>₹{revenue.currentMonth.doctorPayouts}</strong>
-                </span>
-                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 font-bold rounded border border-emerald-200" title="Center billing minus doctor payouts">
-                  NET: <strong>₹{revenue.currentMonth.net}</strong>
-                </span>
-                <span className="px-2 py-0.5 bg-slate-50 text-slate-700 font-bold rounded border border-slate-200">
-                  CENTER PAID: <strong>₹{revenue.currentMonth.centerPaid}</strong>
-                  <span className="text-slate-400 mx-1">|</span>
-                  PENDING: <strong>₹{revenue.currentMonth.centerPending}</strong>
-                </span>
-                <span className="px-2 py-0.5 bg-slate-50 text-slate-700 font-bold rounded border border-slate-200">
-                  DOCTOR PAID: <strong>₹{revenue.currentMonth.doctorPaid}</strong>
-                  <span className="text-slate-400 mx-1">|</span>
-                  PENDING: <strong>₹{revenue.currentMonth.doctorPending}</strong>
-                </span>
-              </div>
-              {revenue.trend && revenue.trend.length > 1 && (
-                <div className="mt-1.5 flex items-center gap-1.5 flex-wrap text-[10px] font-mono text-slate-600">
-                  <span className="font-bold text-slate-500 uppercase">Trend:</span>
-                  {[...revenue.trend].reverse().map((t) => (
-                    <span
-                      key={t.period}
-                      className="px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200"
-                      title={`Center ₹${t.centerBilling} · Doctor ₹${t.doctorPayouts} · Net ₹${t.net}`}
-                    >
-                      {t.period}: <strong>₹{t.net}</strong>
-                    </span>
-                  ))}
-                </div>
-              )}
-              {revenue.assumption && (
-                <div className="mt-1 text-[9px] text-slate-400 font-mono leading-snug">{revenue.assumption}</div>
-              )}
-            </>
-          )}
-          {!revenue && !revenueError && (
-            <div className="text-[11px] text-slate-400 font-mono">Loading revenue from invoices…</div>
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap font-mono text-[10px] sm:text-[11px]">
+              <span className="px-2 py-0.5 bg-sky-50 text-sky-800 font-bold rounded border border-sky-200">
+                BILLING: <strong>₹{revenue.currentMonth.centerBilling}</strong>
+              </span>
+              <span className="px-2 py-0.5 bg-violet-50 text-violet-800 font-bold rounded border border-violet-200">
+                PAYOUTS: <strong>₹{revenue.currentMonth.doctorPayouts}</strong>
+              </span>
+              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 font-bold rounded border border-emerald-200">
+                NET: <strong>₹{revenue.currentMonth.net}</strong>
+              </span>
+            </div>
           )}
         </div>
       )}
@@ -277,7 +271,7 @@ export default function DashboardOverviewPage() {
       )}
 
       {/* Main Full-Height Clinical Patient Studies Data Table (Zero Bloated Cards) */}
-      <div className="flex-1 data-table-container overflow-y-auto bg-white">
+      <div className="flex-1 data-table-container overflow-y-auto bg-white pb-32 md:pb-6">
         {reports.length > 0 ? (
           <table className="data-table">
             <thead>
@@ -370,22 +364,29 @@ export default function DashboardOverviewPage() {
             </tbody>
           </table>
         ) : (
-          <div className="p-10 text-center flex flex-col items-center justify-center my-6">
-            <div className="w-14 h-14 bg-[#009ef7]/10 border border-[#009ef7]/20 rounded-full flex items-center justify-center mb-3 text-[#009ef7]">
-              <FolderOpen className="w-7 h-7" />
+          <div className="p-5 sm:p-10 text-center flex flex-col items-center justify-center my-4 sm:my-8 mx-3 sm:mx-auto max-w-md bg-gradient-to-b from-white via-sky-50/40 to-slate-50 border border-slate-200/80 rounded-2xl shadow-[0_8px_30px_rgba(0,158,247,0.06)] relative overflow-hidden transition-all duration-300">
+            {/* Ambient Animated Gradient Orbs */}
+            <div className="absolute -top-12 -left-12 w-36 h-36 bg-sky-400/15 rounded-full blur-2xl animate-pulse-ring pointer-events-none" />
+            <div className="absolute -bottom-12 -right-12 w-36 h-36 bg-cyan-400/15 rounded-full blur-2xl animate-pulse-ring pointer-events-none" style={{ animationDelay: '1.4s' }} />
+
+            {/* Floating Icon with Double Pulsing Glow Rings */}
+            <div className="relative mb-4 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-[#009ef7]/20 blur-md animate-pulse-ring" />
+              <div className="w-16 h-16 bg-gradient-to-tr from-[#009ef7] to-cyan-400 rounded-2xl flex items-center justify-center text-white shadow-[0_8px_25px_rgba(0,158,247,0.35)] relative z-10 animate-float-icon">
+                <FolderOpen className="w-8 h-8 text-white drop-shadow-md" />
+              </div>
             </div>
-            <h3 className="text-sm font-extrabold text-slate-900 tracking-tight font-mono uppercase">
+
+            <h3 className="text-base font-extrabold text-slate-900 tracking-tight font-mono uppercase bg-gradient-to-r from-slate-900 via-sky-950 to-slate-800 bg-clip-text text-transparent">
               No Patient Studies Recorded Yet
             </h3>
-            <p className="text-xs text-slate-500 max-w-md mt-1 mb-5">
-              Start testing your real-world teleradiology workflow by creating a new X-ray patient record or connecting a diagnostic center.
-            </p>
+
             <button
               type="button"
               onClick={() => setIsNewReportModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#009ef7] hover:bg-[#008be0] text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-xs cursor-pointer font-mono"
+              className="mt-4 group inline-flex items-center gap-2 px-5 py-2.5 bg-transparent text-[#009ef7] border-2 border-[#009ef7] hover:bg-[#009ef7] hover:text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 shadow-[0_2px_12px_rgba(0,158,247,0.15)] hover:shadow-[0_4px_20px_rgba(0,158,247,0.35)] hover:scale-105 active:scale-95 cursor-pointer font-mono"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 transition-transform duration-300 group-hover:rotate-90" />
               <span>Create First Case</span>
             </button>
           </div>

@@ -36,7 +36,14 @@ except ImportError:
     from app import pricing
 
 logger = logging.getLogger(__name__)
-IST = ZoneInfo("Asia/Calcutta")
+try:
+    IST = ZoneInfo("Asia/Kolkata")
+except Exception:
+    try:
+        IST = ZoneInfo("Asia/Calcutta")
+    except Exception:
+        from datetime import timezone, timedelta
+        IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def now_ist() -> datetime:

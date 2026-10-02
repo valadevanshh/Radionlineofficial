@@ -1,4 +1,5 @@
 import time
+import uuid
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel
@@ -413,8 +414,36 @@ def get_my_work(
 
 
 @router.get("")
-def get_reports(db: Session = Depends(get_db)):
-    reports = db.query(ReportDB).order_by(ReportDB.created_at.desc()).all()
+def get_reports(
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
+    if current_user.role == "CENTER":
+        center_id = (current_user.metadata_ or {}).get("centerId")
+        if not center_id:
+            return []
+        reports = (
+            db.query(ReportDB)
+            .filter(ReportDB.radiology_center_id == center_id)
+            .order_by(ReportDB.created_at.desc())
+            .all()
+        )
+    elif current_user.role == "DOCTOR":
+        identity_keys = _doctor_claim_identity_keys(db, current_user)
+        all_reports = db.query(ReportDB).order_by(ReportDB.created_at.desc()).all()
+        reports = []
+        for r in all_reports:
+            meta = r.metadata_ or {}
+            claimed_by = meta.get("claimedByDoctorId")
+            assigned_ids = meta.get("assignedDoctorIds", ["ALL"])
+            if claimed_by and str(claimed_by) in identity_keys:
+                reports.append(r)
+            elif not claimed_by and ("ALL" in assigned_ids or any(str(k) in assigned_ids for k in identity_keys)):
+                reports.append(r)
+    else:
+        # SUPER_ADMIN, MANAGER
+        reports = db.query(ReportDB).order_by(ReportDB.created_at.desc()).all()
+
     try:
         from backend.app.routers.study_reports import (
             case_studies_ordered, enrich_case_item, worklist_sort_key,
@@ -433,38 +462,52 @@ def get_reports(db: Session = Depends(get_db)):
         else:
             item["isPartial"] = False
         res.append(item)
-    # Urgent first, then partials, then rest (createdAt already desc within fetch order;
-    # stable sort keeps relative order inside each group)
     res.sort(key=worklist_sort_key)
     return res
 
 @router.get("/{report_id}")
-def get_report(report_id: str, db: Session = Depends(get_db)):
+def get_report(
+    report_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
     try:
         from backend.app.routers.study_reports import case_studies_ordered, enrich_case_item
+        from backend.app.routers.case_thread import _can_access_case
     except ImportError:
         from app.routers.study_reports import case_studies_ordered, enrich_case_item
+        from app.routers.case_thread import _can_access_case
+
+    case = db.query(CaseDB).filter(CaseDB.id == report_id).first()
+    if not case:
+        study = db.query(StudyDB).filter(StudyDB.id == report_id).first()
+        if study:
+            case = db.query(CaseDB).filter(CaseDB.id == study.case_id).first()
+
+    if case and not _can_access_case(db, current_user, case):
+        raise HTTPException(status_code=403, detail="Access denied to patient report")
+
     report = db.query(ReportDB).filter(ReportDB.id == report_id).first()
     if not report:
         study = db.query(StudyDB).filter(StudyDB.id == report_id).first()
         if not study:
             raise HTTPException(status_code=404, detail="Report not found")
-        case = db.query(CaseDB).filter(CaseDB.id == study.case_id).first()
-        item = study_to_schema(study, case)
-        if case:
-            studies = case_studies_ordered(db, case.id)
-            item = enrich_case_item(item, case, studies)
+        c = db.query(CaseDB).filter(CaseDB.id == study.case_id).first()
+        item = study_to_schema(study, c)
+        if c:
+            studies = case_studies_ordered(db, c.id)
+            item = enrich_case_item(item, c, studies)
         return item
-    case = db.query(CaseDB).filter(CaseDB.id == report.id).first()
+    c = db.query(CaseDB).filter(CaseDB.id == report.id).first()
     item = db_to_schema(report)
-    if case:
-        studies = case_studies_ordered(db, case.id)
-        item = enrich_case_item(item, case, studies)
+    if c:
+        studies = case_studies_ordered(db, c.id)
+        item = enrich_case_item(item, c, studies)
     return item
 
 @router.post("", response_model=ReportResponse)
 async def save_report(report_in: ReportCreate, db: Session = Depends(get_db)):
-    rep_id = report_in.id or f"rep-{int(time.time() * 1000)}"
+    rep_id = report_in.id or str(uuid.uuid4())
     created_at = datetime.utcnow().isoformat() + "Z"
     
     is_urg = bool(report_in.isUrgent) if report_in.isUrgent is not None else False
@@ -492,6 +535,7 @@ async def save_report(report_in: ReportCreate, db: Session = Depends(get_db)):
         "docContent": report_in.docContent,
         "dicomSnapshots": report_in.dicomSnapshots,
         "uploadedImages": report_in.uploadedImages,
+        "clinicalHistoryImages": getattr(report_in, "clinicalHistoryImages", None),
         "assignedDoctorIds": report_in.assignedDoctorIds or ["ALL"],
         "assignedDoctorDegree": report_in.assignedDoctorDegree or "M.D. (Radiodiagnosis)",
         "assignedDoctorRegNo": report_in.assignedDoctorRegNo or "MCI Reg. No. 48291",
@@ -742,7 +786,22 @@ async def save_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     return result
 
 @router.post("/{report_id}/claim", response_model=ReportResponse)
-async def claim_report(report_id: str, claim_req: ClaimReportRequest, db: Session = Depends(get_db)):
+async def claim_report(
+    report_id: str,
+    claim_req: ClaimReportRequest,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(require_roles("DOCTOR")),
+):
+    doc_id = (current_user.metadata_ or {}).get("doctorId")
+    if not doc_id:
+        raise HTTPException(status_code=403, detail="Doctor account missing doctorId profile")
+    doctor_row = db.query(DoctorDB).filter(DoctorDB.id == doc_id).first()
+    doctor_name = doctor_row.full_name if doctor_row else current_user.name
+
+    # Override request payload identity with authenticated doctor user
+    claim_req.doctorId = str(doc_id)
+    claim_req.doctorName = doctor_name
+
     # ATOMIC CONDITIONAL UPDATE: UPDATE studies SET claimed_by = :doctor_id, status = 'CLAIMED' WHERE id = :id AND status = 'UNCLAIMED'
     # Checked strictly via result.rowcount (NO PRIOR SELECT!)
     stmt = (

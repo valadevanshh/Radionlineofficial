@@ -1,6 +1,7 @@
 'use client';
 
 import { RADIOLOGY_TEMPLATES } from './radiology-templates';
+import { generateUUID, formatAsUUID } from './uuid';
 
 export type UserRole = 'SUPER_ADMIN' | 'DOCTOR' | 'MANAGER' | 'CENTER';
 
@@ -121,6 +122,7 @@ export interface XRayReport {
   docContent?: string;
   dicomSnapshots?: string[];
   uploadedImages?: string[];
+  clinicalHistoryImages?: string[];
   hasHeaderUrl?: boolean;
   hasNoHeaderUrl?: boolean;
   createdAt: string;
@@ -277,7 +279,8 @@ export const RadiologyStore = {
     } else {
       const created: XRayReport = {
         ...report,
-        id: `rep-${Date.now()}`,
+        id: generateUUID(),
+        patientNumber: formatAsUUID(report.patientNumber),
         createdAt: new Date().toISOString(),
       } as XRayReport;
       reports.unshift(created);
@@ -328,7 +331,7 @@ export const RadiologyStore = {
       } else {
         savedDoc = {
           ...doctor,
-          id: `doc-${Date.now()}`,
+          id: generateUUID(),
           createdAt: new Date().toISOString().split('T')[0],
         } as Doctor;
         doctors.unshift(savedDoc);
@@ -336,7 +339,7 @@ export const RadiologyStore = {
     } else {
       savedDoc = {
         ...doctor,
-        id: `doc-${Date.now()}`,
+        id: generateUUID(),
         createdAt: new Date().toISOString().split('T')[0],
       } as Doctor;
       doctors.unshift(savedDoc);
@@ -384,7 +387,7 @@ export const RadiologyStore = {
       } else {
         savedCenter = {
           ...center,
-          id: `center-${Date.now()}`,
+          id: generateUUID(),
           createdAt: new Date().toISOString().split('T')[0],
         } as RadiologyCenter;
         centers.unshift(savedCenter);
@@ -392,7 +395,7 @@ export const RadiologyStore = {
     } else {
       savedCenter = {
         ...center,
-        id: `center-${Date.now()}`,
+        id: generateUUID(),
         createdAt: new Date().toISOString().split('T')[0],
       } as RadiologyCenter;
       centers.unshift(savedCenter);
@@ -450,7 +453,7 @@ export const RadiologyStore = {
       } else {
         saved = {
           ...template,
-          id: `tmpl-${Date.now()}`,
+          id: generateUUID(),
           createdAt: new Date().toISOString(),
         } as DocTemplate;
         templates.unshift(saved);
@@ -458,7 +461,7 @@ export const RadiologyStore = {
     } else {
       saved = {
         ...template,
-        id: `tmpl-${Date.now()}`,
+        id: generateUUID(),
         createdAt: new Date().toISOString(),
       } as DocTemplate;
       templates.unshift(saved);

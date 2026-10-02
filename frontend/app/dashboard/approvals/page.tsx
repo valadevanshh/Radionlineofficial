@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ApiClient, PendingApproval } from '@/lib/api-client';
+import { ApiClient, PendingApproval, getAccessToken } from '@/lib/api-client';
 import { RadiologyStore, UserAccount, DEMO_USERS } from '@/lib/radiology-store';
 import ApprovalDiff from '@/components/ApprovalDiff';
 import {
@@ -51,7 +51,9 @@ export default function ApprovalsPage() {
     // WebSocket listener for live updates
     let ws: WebSocket | null = null;
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const token = getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const wsUrl = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
       ws = new WebSocket(wsUrl);
 
       ws.onmessage = (event) => {

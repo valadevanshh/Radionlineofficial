@@ -50,12 +50,12 @@ export default function ReportPreviewModal({
     fullName: report.assignedDoctorName || 'DR. RADIOLOGIST',
     signatureUrl: 'https://placehold.co/200x80/ffffff/000000.png?text=Dr.+Signature',
     degree: 'M.D. (Radiodiagnosis)',
-    registrationNumber: 'MCI Reg. No. 48291',
+    registrationNumber: '',
   };
 
   const docName = report.assignedDoctorName || doctor.fullName;
   const docDegree = report.assignedDoctorDegree || doctor.degree || 'M.D. (Radiodiagnosis)';
-  const docRegNo = report.assignedDoctorRegNo || doctor.registrationNumber || 'MCI Reg. No. 48291';
+  const docRegNo = report.assignedDoctorRegNo || doctor.registrationNumber || '';
   const verificationUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/verify-report?id=${encodeURIComponent(report.id)}`
     : `https://radionlineofficial.com/verify-report?id=${encodeURIComponent(report.id)}`;

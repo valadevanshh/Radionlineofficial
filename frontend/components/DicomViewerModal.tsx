@@ -77,10 +77,13 @@ interface DicomViewerModalProps {
   onOpenActivity?: () => void;
 }
 
+const generateDicomSvg = (bodyPart: string, modality: string) =>
+  `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000" style="background:%2305070a;"><defs><radialGradient id="g" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="%23475569"/><stop offset="50%" stop-color="%231e293b"/><stop offset="100%" stop-color="%23020617"/></radialGradient></defs><rect width="1000" height="1000" fill="url(%23g)"/><path d="M 300 250 Q 500 150 700 250 T 700 750 Q 500 850 300 750 Z" fill="none" stroke="%2394a3b8" stroke-width="4" stroke-dasharray="8 4" opacity="0.6"/><path d="M 380 320 C 440 380 440 620 380 680" fill="none" stroke="%23f8fafc" stroke-width="12" opacity="0.85"/><path d="M 620 320 C 560 380 560 620 620 680" fill="none" stroke="%23f8fafc" stroke-width="12" opacity="0.85"/><ellipse cx="500" cy="500" rx="140" ry="220" fill="none" stroke="%23cbd5e1" stroke-width="6" opacity="0.75"/><text x="40" y="60" fill="%23009ef7" font-family="monospace" font-size="24" font-weight="bold">RADIONET DICOM WORKSTATION</text><text x="40" y="95" fill="%2394a3b8" font-family="monospace" font-size="18">${encodeURIComponent(modality)} — ${encodeURIComponent(bodyPart)}</text><text x="920" y="70" fill="%23f8fafc" font-family="sans-serif" font-size="42" font-weight="bold">R</text><line x1="40" y1="940" x2="240" y2="940" stroke="%23009ef7" stroke-width="4"/><text x="40" y="970" fill="%23009ef7" font-family="monospace" font-size="16">SCALE: 10 cm</text></svg>`;
+
 export const SAMPLE_DICOM_SERIES = [
   {
     id: 'chest-pa-1',
-    title: 'FALL (PBH AP & RT HIP AP/LAT PORTABLE)',
+    title: 'HIP & PELVIS AP/LAT PORTABLE',
     modality: 'DX (Digital Radiography)',
     bodyPart: 'HIP & PELVIS AP/LAT',
     studyDate: '08 Sep 2026 19:47',
@@ -90,8 +93,8 @@ export const SAMPLE_DICOM_SERIES = [
     exposureTime: '32 ms',
     pixelSpacing: '0.14 mm / px',
     rowsCols: '2048 x 2048',
-    institution: 'CHAMUNDA DIAGNOSTICS - RADIONET PACS',
-    imageUrl: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?auto=format&fit=crop&w=1200&q=80',
+    institution: 'DIAGNOSTICS PACS HUB',
+    imageUrl: generateDicomSvg('HIP & PELVIS', 'DX'),
     ww: 1500,
     wl: -600,
   },
@@ -107,8 +110,8 @@ export const SAMPLE_DICOM_SERIES = [
     exposureTime: '40 ms',
     pixelSpacing: '0.10 mm / px',
     rowsCols: '1920 x 1920',
-    institution: 'MANGALDIP ADVANCE PORTABLE X-RAY',
-    imageUrl: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1200&q=80',
+    institution: 'ADVANCE PORTABLE X-RAY',
+    imageUrl: generateDicomSvg('KNEE JOINT', 'DX'),
     ww: 2000,
     wl: 400,
   },
@@ -124,8 +127,8 @@ export const SAMPLE_DICOM_SERIES = [
     exposureTime: '80 ms',
     pixelSpacing: '0.12 mm / px',
     rowsCols: '2048 x 2500',
-    institution: 'NK MEDICAL DIAGNOSTICS & RESEARCH',
-    imageUrl: 'https://images.unsplash.com/photo-1559757175-5700dde675bc?auto=format&fit=crop&w=1200&q=80',
+    institution: 'DIAGNOSTICS RESEARCH',
+    imageUrl: generateDicomSvg('LUMBAR SPINE', 'DX'),
     ww: 1800,
     wl: 350,
   },
@@ -141,8 +144,8 @@ export const SAMPLE_DICOM_SERIES = [
     exposureTime: '500 ms',
     pixelSpacing: '0.48 mm / px',
     rowsCols: '512 x 512',
-    institution: 'RADIONET PACS HUB',
-    imageUrl: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&q=80',
+    institution: 'PACS HUB',
+    imageUrl: generateDicomSvg('BRAIN / HEAD', 'CT'),
     ww: 80,
     wl: 40,
   },
@@ -257,8 +260,14 @@ export default function DicomViewerModal({
             ApiClient.getCenters(),
           ]);
           if (tmpls?.length) {
-            setStoredTemplates(tmpls);
-            tmpls.forEach((t) => RadiologyStore.saveTemplate(t));
+            // Merge API templates with local/system templates so built-ins stay available
+            const byId = new Map<string, DocTemplate>();
+            RadiologyStore.getTemplates().forEach((t) => byId.set(t.id, t));
+            tmpls.forEach((t) => {
+              byId.set(t.id, t);
+              RadiologyStore.saveTemplate(t);
+            });
+            setStoredTemplates(Array.from(byId.values()));
           }
           if (cntrs?.length) setAllCenters(cntrs);
         } catch (err) {
@@ -295,7 +304,15 @@ export default function DicomViewerModal({
   const templateMatchesCase = (tmpl: DocTemplate) => {
     const tMod = norm(tmpl.modality);
     const tBp = norm(tmpl.bodyPart);
-    const modalityOk = !caseModality || !tMod || tMod === caseModality;
+    // "X-Ray" should match "X-Ray Chest", "CT" match "CT Scan", etc.
+    const modalityOk =
+      !caseModality ||
+      !tMod ||
+      tMod === caseModality ||
+      tMod.startsWith(caseModality) ||
+      caseModality.startsWith(tMod) ||
+      tMod.includes(caseModality) ||
+      caseModality.includes(tMod.split(/\s+/)[0] || tMod);
     const bodyOk =
       caseBodyParts.length === 0 ||
       !tBp ||
@@ -736,6 +753,36 @@ export default function DicomViewerModal({
     }
 
     setIsSubmitting(false);
+  };
+
+  const handleSaveDraft = async () => {
+    if (!report || isSubmitting) return;
+    setIsSubmitting(true);
+    const parts = report.bodyParts || [];
+    const currentPart = parts[activeBodyPartIdx] || parts[0] || 'CHEST PA/AP';
+    const findingText = bodyPartReports[currentPart] || '';
+    const impressionText = bodyPartImpressions[currentPart] || '';
+    const techText = techniqueByPart[currentPart] || `${report.modality || 'X-Ray'} — ${currentPart}`;
+    const studies = report.studies || [];
+    const matchedStudy = studies.find((s) => s.bodyPart === currentPart) || studies[activeBodyPartIdx];
+    const studyId = matchedStudy?.id || `${report.id}-st-${activeBodyPartIdx}`;
+
+    try {
+      await ApiClient.saveStudyDraft(report.id, studyId, {
+        findings: findingText,
+        impression: impressionText,
+        technique: techText,
+      });
+      setStudyStatuses((prev) => ({ ...prev, [currentPart]: 'DRAFT' }));
+      setStatusToast(`Draft saved for ${currentPart}`);
+      setTimeout(() => setStatusToast(null), 3000);
+    } catch (err: any) {
+      console.warn('Save draft error:', err);
+      setStatusToast('Failed to save draft');
+      setTimeout(() => setStatusToast(null), 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleToolClick = (tool: ToolMode) => {
@@ -1267,6 +1314,21 @@ export default function DicomViewerModal({
 
           <button
             type="button"
+            onClick={handleSaveDraft}
+            disabled={isSubmitting}
+            className={`flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg border text-[13px] font-semibold transition-colors ${
+              theme === 'dark'
+                ? 'border-slate-700 text-slate-200 hover:bg-slate-800'
+                : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+            }`}
+            title="Save Draft Report"
+          >
+            <BookmarkPlus className="w-4 h-4 text-[#009ef7]" />
+            <span className="hidden md:inline">Save Draft</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleSaveAndSubmitReport}
             disabled={isSubmitting}
             className="flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
@@ -1403,20 +1465,60 @@ export default function DicomViewerModal({
                   onChange={(e) => {
                     const tId = e.target.value;
                     setSelectedTemplateId(tId);
+                    if (!tId) return;
+
+                    const htmlToPlain = (html: string) =>
+                      html
+                        .replace(/<br\s*\/?>/gi, '\n')
+                        .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n')
+                        .replace(/<[^>]+>/g, '')
+                        .replace(/&nbsp;/gi, ' ')
+                        .replace(/&amp;/gi, '&')
+                        .replace(/&lt;/gi, '<')
+                        .replace(/&gt;/gi, '>')
+                        .replace(/\r\n/g, '\n')
+                        .replace(/\n{3,}/g, '\n\n')
+                        .trim();
+
+                    const applyFindingsImpression = (rawFindings: string, rawImpression: string, content?: string) => {
+                      let findings = (rawFindings || '').trim();
+                      let impression = (rawImpression || '').trim();
+                      if ((!findings || !impression) && content) {
+                        const plain = htmlToPlain(content);
+                        const parts = plain.split(/\bIMPRESSION(?:\s*&\s*CONCLUSION)?\s*:?/i);
+                        if (parts.length >= 2) {
+                          if (!findings) {
+                            findings = parts[0].replace(/^(?:RADIOLOGICAL\s+)?FINDINGS\s*:?/i, '').trim();
+                          }
+                          if (!impression) {
+                            impression = parts.slice(1).join('\n').trim();
+                          }
+                        } else if (!findings) {
+                          findings = plain.replace(/^(?:RADIOLOGICAL\s+)?FINDINGS\s*:?/i, '').trim();
+                        }
+                      }
+                      setFindingText(findings);
+                      setImpressionText(impression);
+                      const parts = report?.bodyParts?.length ? report.bodyParts : [];
+                      const currentPart = parts[activeBodyPartIdx] || parts[0];
+                      if (currentPart) {
+                        setBodyPartReports((prev) => ({ ...prev, [currentPart]: findings }));
+                        setBodyPartImpressions((prev) => ({ ...prev, [currentPart]: impression }));
+                      }
+                    };
+
                     if (tId.startsWith('stored_')) {
                       const id = tId.replace('stored_', '');
-                      const tmpl = storedTemplates.find((t) => t.id === id); // resolve from full list
+                      const tmpl = storedTemplates.find((t) => t.id === id);
                       if (tmpl) {
                         setReportTitle(tmpl.title);
-                        setFindingText(tmpl.findings || tmpl.content?.replace(/<[^>]*>/g, '') || '');
-                        setImpressionText(tmpl.impression || '');
+                        applyFindingsImpression(tmpl.findings || '', tmpl.impression || '', tmpl.content);
                       }
                     } else {
                       const tmpl = RADIOLOGY_TEMPLATES.find((t) => t.id === tId);
                       if (tmpl) {
                         setReportTitle(tmpl.title);
-                        setFindingText(tmpl.findings);
-                        setImpressionText(tmpl.impression);
+                        applyFindingsImpression(tmpl.findings, tmpl.impression);
                       }
                     }
                   }}
@@ -1590,12 +1692,17 @@ export default function DicomViewerModal({
 
             {/* Editable Document Paper Canvas (A4 Format: 210mm x 297mm @ 96dpi = 794px x 1123px) */}
             <div
-              className={`flex-1 min-h-0 p-3 sm:p-6 lg:p-8 overflow-y-auto flex justify-center touch-pan-y overscroll-contain select-text print:bg-white print:p-0 print:overflow-visible print:block ${
+              className={`flex-1 min-h-0 p-3 sm:p-6 lg:p-8 overflow-y-auto flex justify-center items-start touch-pan-y overscroll-contain select-text print:bg-white print:p-0 print:overflow-visible print:block ${
                 theme === 'dark' ? 'bg-[#090d16]' : 'bg-slate-300'
               }`}
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
-              <div className={`bg-white text-slate-900 w-full max-w-[794px] min-h-[1123px] p-6 sm:p-10 md:p-12 shadow-2xl border border-slate-200 text-xs sm:text-sm relative flex flex-col justify-between my-0 select-text rounded-xs print-area print:max-w-none print:w-full print:shadow-none print:border-none print:p-0 print:m-0 print:min-h-0 print:justify-start print:gap-4 ${reportFontFamily}`} data-print-ready="1" data-testid="report-print-area">
+              <div
+                className={`bg-white text-slate-900 w-full max-w-[794px] min-h-[1123px] h-auto p-6 sm:p-10 md:p-12 shadow-2xl border border-slate-200 text-xs sm:text-sm relative flex flex-col my-0 select-text rounded-xs print-area print:max-w-none print:w-full print:shadow-none print:border-none print:p-0 print:m-0 print:min-h-0 print:justify-start print:gap-4 ${reportFontFamily}`}
+                data-print-ready="1"
+                data-testid="report-print-area"
+                style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
+              >
                 
                 <div className="font-serif text-[13px] sm:text-[14px] leading-relaxed text-black">
                   {/* LETTERHEAD */}
@@ -1768,7 +1875,7 @@ export default function DicomViewerModal({
                               rows={8}
                               value={findingText}
                               onChange={(val) => setFindingText(val)}
-                              fontClass={`${reportFontFamily} ${reportFontSize} leading-relaxed text-black`}
+                              fontClass={`${reportFontFamily} ${reportFontSize} leading-relaxed`}
                             />
                           ) : (
                             <p className="whitespace-pre-wrap text-[13px] sm:text-[14px] text-black min-h-[3rem]">
@@ -1786,7 +1893,7 @@ export default function DicomViewerModal({
                               rows={3}
                               value={impressionText}
                               onChange={(val) => setImpressionText(val)}
-                              fontClass={`${reportFontFamily} ${reportFontSize} font-bold leading-relaxed text-black`}
+                              fontClass={`${reportFontFamily} ${reportFontSize} font-bold leading-relaxed`}
                             />
                           ) : (
                             <p className="whitespace-pre-wrap font-semibold text-[13px] sm:text-[14px] text-black">
@@ -1800,7 +1907,7 @@ export default function DicomViewerModal({
                 </div>
 
                 {/* SIGNATURE BLOCK */}
-                <footer className="mt-8 pt-4 font-sans text-[12px] sm:text-[13px] text-black">
+                <footer className="mt-auto pt-8 font-sans text-[12px] sm:text-[13px] text-black">
                   <div className="flex flex-col items-end text-right gap-1 min-h-[88px]">
                     {doctorSignatureUrl ? (
                       <img src={doctorSignatureUrl} alt="Signature" className="h-14 object-contain mb-1" />

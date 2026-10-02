@@ -19,12 +19,7 @@ function DicomViewerStudioContent() {
       router.replace(`/dashboard/workspace/${reportId}`);
       return;
     }
-    const allReports = RadiologyStore.getReports();
-    if (allReports.length > 0) {
-      router.replace(`/dashboard/workspace/${allReports[0].id}`);
-    } else {
-      router.replace('/dashboard/all-reports');
-    }
+    router.replace('/dashboard/all-reports');
   }, [reportId, router]);
 
   return (

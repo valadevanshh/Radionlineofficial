@@ -6,12 +6,12 @@ try:
     from backend.app.database import get_db
     from backend.app.models import DoctorDB, UserDB
     from backend.app.schemas import DoctorCreate, DoctorResponse
-    from backend.app.security import get_current_user, hash_password, looks_like_bcrypt
+    from backend.app.security import get_current_user, require_roles, hash_password, looks_like_bcrypt
 except ImportError:
     from app.database import get_db
     from app.models import DoctorDB, UserDB
     from app.schemas import DoctorCreate, DoctorResponse
-    from app.security import get_current_user, hash_password, looks_like_bcrypt
+    from app.security import get_current_user, require_roles, hash_password, looks_like_bcrypt
 from sqlalchemy.orm.attributes import flag_modified
 
 router = APIRouter(
@@ -35,7 +35,7 @@ def db_to_schema(d: DoctorDB) -> dict:
         "signatureUrl": meta.get("signatureUrl"),
         "profileFileUrl": meta.get("profileFileUrl"),
         "degree": meta.get("degree", "M.D. (Radiodiagnosis)"),
-        "registrationNumber": meta.get("registrationNumber", "MCI Reg. No. 48291"),
+        "registrationNumber": meta.get("registrationNumber"),
         "createdAt": d.created_at,
     }
 
@@ -45,7 +45,11 @@ def get_doctors(db: Session = Depends(get_db)):
     return [db_to_schema(d) for d in docs]
 
 @router.post("", response_model=DoctorResponse)
-def save_doctor(doc_in: DoctorCreate, db: Session = Depends(get_db)):
+def save_doctor(
+    doc_in: DoctorCreate,
+    db: Session = Depends(get_db),
+    _current_user: UserDB = Depends(require_roles("SUPER_ADMIN", "MANAGER")),
+):
     doc_id = doc_in.id or f"doc-{int(time.time() * 1000)}"
     existing = db.query(DoctorDB).filter(DoctorDB.id == doc_id).first()
 
@@ -58,7 +62,7 @@ def save_doctor(doc_in: DoctorCreate, db: Session = Depends(get_db)):
         "signatureUrl": doc_in.signatureUrl,
         "profileFileUrl": doc_in.profileFileUrl,
         "degree": doc_in.degree or "M.D. (Radiodiagnosis)",
-        "registrationNumber": doc_in.registrationNumber or "MCI Reg. No. 48291",
+        "registrationNumber": doc_in.registrationNumber,
     }
 
     if existing:
@@ -114,7 +118,11 @@ def save_doctor(doc_in: DoctorCreate, db: Session = Depends(get_db)):
     return db_to_schema(saved_doc)
 
 @router.delete("/{doctor_id}", status_code=204)
-def delete_doctor(doctor_id: str, db: Session = Depends(get_db)):
+def delete_doctor(
+    doctor_id: str,
+    db: Session = Depends(get_db),
+    _current_user: UserDB = Depends(require_roles("SUPER_ADMIN", "MANAGER")),
+):
     doc = db.query(DoctorDB).filter(DoctorDB.id == doctor_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Doctor not found")

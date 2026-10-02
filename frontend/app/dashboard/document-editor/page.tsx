@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { RadiologyStore, XRayReport, DocTemplate, RadiologyCenter } from '@/lib/radiology-store';
 import { ApiClient } from '@/lib/api-client';
+import { formatAsUUID } from '@/lib/uuid';
 
 import { PageShell, PageHeader, StatusBadge } from '@/components/ui';
 
@@ -47,13 +48,11 @@ export default function DocumentEditorStudioPage() {
         ApiClient.getCenters(),
       ]);
       setReports(reps);
-      if (reps.length > 0 && !selectedReport) setSelectedReport(reps[0]);
       setSavedTemplates(tmpls);
       setAllCenters(cntrs.length > 0 ? cntrs : RadiologyStore.getCenters());
     } catch {
       const list = RadiologyStore.getReports();
       setReports(list);
-      if (list.length > 0 && !selectedReport) setSelectedReport(list[0]);
       setSavedTemplates(RadiologyStore.getTemplates());
       setAllCenters(RadiologyStore.getCenters());
     }
@@ -200,7 +199,7 @@ export default function DocumentEditorStudioPage() {
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search patient, PAT-ID..."
+                placeholder="Search patient, UUID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-[#009ef7]"
@@ -220,7 +219,7 @@ export default function DocumentEditorStudioPage() {
                 }`}
               >
                 <div className="flex justify-between items-center text-[10px] font-mono">
-                  <span className="font-bold text-[#009ef7]">{r.patientNumber}</span>
+                  <span className="font-bold text-[#009ef7]">{formatAsUUID(r.patientNumber || r.id)}</span>
                   <span className="text-slate-400">{r.studyDate}</span>
                 </div>
                 <div className="font-bold text-xs text-slate-900 mt-0.5">{r.fullName}</div>
