@@ -4,8 +4,9 @@ import './design-tokens.css';
 import { AppProviders } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Radionline — Teleradiology & X-Ray Management Platform',
+  title: 'Radionlineofficial — Teleradiology & X-Ray Management Platform',
   description: 'Digital X-Ray Patient Record Management & Diagnostic Report Platform',
+  icons: { icon: '/logo.png' },
 };
 
 export default function RootLayout({

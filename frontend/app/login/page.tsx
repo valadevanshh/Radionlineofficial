@@ -80,19 +80,7 @@ export default function LoginPage() {
 
         {/* Top Header Identity */}
         <div className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#009ef7] text-white flex items-center justify-center rounded-xl shadow-lg ring-1 ring-white/20">
-              <span className="font-extrabold text-sm tracking-tight font-mono">RX</span>
-            </div>
-            <div>
-              <span className="font-extrabold text-lg tracking-wider text-white font-mono block leading-tight">
-                RADIONLINE
-              </span>
-              <span className="text-[10px] tracking-widest uppercase text-[#009ef7] font-bold block">
-                Teleradiology PACS Platform
-              </span>
-            </div>
-          </div>
+          <img src="/logo.png" alt="Radionlineofficial" className="h-16 w-auto" />
 
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-[11px] font-semibold text-emerald-400 backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
@@ -150,19 +138,7 @@ export default function LoginPage() {
         
         {/* Mobile Header Brand Bar (Visible only on Mobile & Tablet) */}
         <div className="lg:hidden flex items-center justify-between pb-6 mb-2 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-[#009ef7] text-white flex items-center justify-center rounded-lg shadow-sm font-mono font-bold text-xs">
-              RX
-            </div>
-            <div>
-              <span className="font-extrabold text-base tracking-wider text-slate-900 font-mono leading-none block">
-                RADIONLINE
-              </span>
-              <span className="text-[10px] tracking-wider uppercase text-[#009ef7] font-bold block">
-                Teleradiology PACS Platform
-              </span>
-            </div>
-          </div>
+          <img src="/logo.png" alt="Radionlineofficial" className="h-14 w-auto bg-black rounded-lg" />
 
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

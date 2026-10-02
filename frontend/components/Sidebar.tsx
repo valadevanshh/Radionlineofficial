@@ -283,39 +283,18 @@ export default function Sidebar({
           flexShrink: 0,
         }}
       >
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 6,
-              background: '#009ef7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: '0 2px 4px rgba(0,158,247,0.25)',
-            }}
-          >
-            <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
-              RX
-            </span>
-          </div>
-          {!collapsed && (
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 800,
-                color: '#0f172a',
-                letterSpacing: '-0.01em',
-                whiteSpace: 'nowrap',
-                fontFamily: 'monospace',
-              }}
-            >
-              RadioNet PACS
-            </span>
-          )}
-        </div>
+        <img
+          src="/logo.png"
+          alt="Radionlineofficial"
+          style={{
+            height: collapsed ? 28 : 36,
+            width: collapsed ? 28 : 'auto',
+            objectFit: 'cover',
+            objectPosition: 'left center',
+            background: '#000',
+            borderRadius: 6,
+          }}
+        />
 
         {/* Top Collapse Toggle Icon */}
         <button
