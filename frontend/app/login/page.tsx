@@ -18,10 +18,8 @@ import {
   CheckCircle2,
   Sparkles,
   Shield,
-  UserCheck,
-  KeyRound,
 } from 'lucide-react';
-import { RadiologyStore, DEMO_USERS, UserAccount } from '@/lib/radiology-store';
+import { RadiologyStore } from '@/lib/radiology-store';
 import { ApiClient } from '@/lib/api-client';
 import { TextInput } from '@/components/ui';
 
@@ -60,13 +58,6 @@ export default function LoginPage() {
       setLoading(false);
       setError('Invalid username or password. Please check your credentials.');
     }
-  };
-
-  /** Prefills demo credentials only — login still requires API authentication. */
-  const handleQuickLogin = (demoUser: UserAccount) => {
-    setError('');
-    setEmail(demoUser.email);
-    setPassword(demoUser.password || '');
   };
 
   const handleForgotPasswordSubmit = (e: React.FormEvent) => {
@@ -146,22 +137,10 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Metrics */}
-        <div className="relative z-10 pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-4 text-[11px] font-mono">
-            <div>
-              <p className="font-bold text-white">99.99%</p>
-              <p className="text-[9px] uppercase text-slate-400">PACS Uptime</p>
-            </div>
-            <div className="h-6 w-px bg-slate-800" />
-            <div>
-              <p className="font-bold text-white">100K+</p>
-              <p className="text-[9px] uppercase text-slate-400">Scans Processed</p>
-            </div>
-          </div>
-
+            <div className="relative z-10 pt-4 border-t border-slate-800/80 flex items-center justify-end gap-3 text-xs">
           <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>256-Bit SSL Encrypted PACS</span>
+            <span>Encrypted clinical workstation</span>
           </div>
         </div>
       </div>
@@ -202,32 +181,6 @@ export default function LoginPage() {
             <p className="text-xs text-slate-500 font-medium">
               Enter your registered credentials to access PACS workstation & reports.
             </p>
-          </div>
-
-          {/* Quick Demo Accounts Selection Bar */}
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
-              <KeyRound className="w-3 h-3 text-[#009ef7]" />
-              <span>Demo Accounts (fill form — still requires server login)</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin(DEMO_USERS[0])}
-                className="flex items-center justify-center gap-1.5 p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 transition-colors shadow-2xs cursor-pointer"
-              >
-                <UserCheck className="w-3.5 h-3.5 text-[#009ef7]" />
-                <span>Super Admin</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin(DEMO_USERS[1])}
-                className="flex items-center justify-center gap-1.5 p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 transition-colors shadow-2xs cursor-pointer"
-              >
-                <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Manager</span>
-              </button>
-            </div>
           </div>
 
           {/* Error Alert */}
@@ -391,12 +344,11 @@ export default function LoginPage() {
             <div className="space-y-3 text-xs">
               <div className="p-3 bg-sky-50 border border-sky-200 rounded-lg text-sky-800 font-semibold flex items-center gap-2">
                 <Shield className="w-4 h-4 text-sky-600 shrink-0" />
-                <span>All logins are encrypted under HIPAA 45 CFR Part 164 standards.</span>
+                <span>Sign-in is authenticated by the server. Accounts are created by an administrator.</span>
               </div>
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1 text-slate-700">
-                <div className="font-bold text-slate-900 mb-1">System Administrator Support</div>
-                <div>Email: <span className="font-mono text-slate-900 font-bold">support@radionline.com</span></div>
-                <div>Hotline: <span className="font-mono text-slate-900 font-bold">+91 (800) 555-RADS</span></div>
+                <div className="font-bold text-slate-900 mb-1">Administrator support</div>
+                <div>Contact your organization administrator for account access.</div>
               </div>
             </div>
           </div>

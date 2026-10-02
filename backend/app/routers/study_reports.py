@@ -307,8 +307,17 @@ def apply_study_payload(study: StudyDB, payload: StudyReportPayload) -> None:
     if payload.docContent is not None:
         study.doc_content = payload.docContent
     if payload.dicomSnapshots is not None:
+        try:
+            from backend.app import storage as file_storage
+        except ImportError:
+            from app import storage as file_storage
         meta = dict(study.metadata_ or {})
-        meta["dicomSnapshots"] = payload.dicomSnapshots
+        meta["dicomSnapshots"] = file_storage.materialize_media_list(
+            payload.dicomSnapshots,
+            category="cases",
+            entity_id=study.case_id,
+            subfolder="snapshots",
+        )
         study.metadata_ = meta
 
 

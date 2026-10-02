@@ -30,6 +30,8 @@ ENV/
 .env
 .env.local
 backend/.env
+backend/data/files/
+data/files/
 .idea/
 .vscode/
 .DS_Store

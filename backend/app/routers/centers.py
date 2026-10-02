@@ -13,6 +13,10 @@ except ImportError:
     from app.schemas import CenterCreate, CenterResponse
     from app.security import get_current_user, require_roles, hash_password, looks_like_bcrypt
 from sqlalchemy.orm.attributes import flag_modified
+try:
+    from backend.app import storage as file_storage
+except ImportError:
+    from app import storage as file_storage
 
 router = APIRouter(
     prefix="/centers",
@@ -32,8 +36,8 @@ def db_to_schema(c: CenterDB) -> dict:
         "password": None,
         "contactNumber": c.contact_number,
         "address": meta.get("address"),
-        "headerTemplateUrl": meta.get("headerTemplateUrl"),
-        "logoUrl": meta.get("logoUrl"),
+        "headerTemplateUrl": file_storage.public_url(meta.get("headerTemplateUrl")),
+        "logoUrl": file_storage.public_url(meta.get("logoUrl")),
         "createdAt": c.created_at,
     }
 
@@ -60,8 +64,20 @@ def save_center(
         "username": center_in.username,
         "password": hashed_pw,
         "address": center_in.address,
-        "headerTemplateUrl": center_in.headerTemplateUrl,
-        "logoUrl": center_in.logoUrl,
+        "headerTemplateUrl": file_storage.materialize_media_reference(
+            center_in.headerTemplateUrl,
+            category="centers",
+            entity_id=c_id,
+            subfolder="header",
+            filename_hint="header.png",
+        ),
+        "logoUrl": file_storage.materialize_media_reference(
+            center_in.logoUrl,
+            category="centers",
+            entity_id=c_id,
+            subfolder="logo",
+            filename_hint="logo.png",
+        ),
     }
 
     if existing:

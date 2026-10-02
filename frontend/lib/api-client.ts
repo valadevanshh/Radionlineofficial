@@ -1,7 +1,25 @@
 import { XRayReport, Doctor, RadiologyCenter, DocTemplate, UserAccount } from './radiology-store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+/** Origin without /api suffix — used for /api/files/... media URLs */
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 const TOKEN_KEY = 'radionline_token_v1';
+
+/** Turn DB path or /api/files/... into a browser-loadable URL (img, PDF, etc.). */
+export function resolveMediaUrl(ref?: string | null): string {
+  if (!ref) return '';
+  const raw = ref.trim();
+  if (raw.startsWith('data:') || raw.startsWith('http://') || raw.startsWith('https://')) {
+    return raw;
+  }
+  if (raw.startsWith('/api/files/')) {
+    return `${API_ORIGIN}${raw}`;
+  }
+  if (/^\d{4}\/\d{2}\/\d{2}\//.test(raw)) {
+    return `${API_ORIGIN}/api/files/${raw}`;
+  }
+  return raw;
+}
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -325,6 +343,33 @@ export const ApiClient = {
     return fetchJson<void>(`/centers/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  /** Upload binary to KV2/disk; returns relative path + public URL. */
+  async uploadFile(
+    file: File,
+    opts: { category: 'cases' | 'doctors' | 'centers'; entityId: string; subfolder?: string },
+  ): Promise<{ path: string; url: string }> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('category', opts.category);
+    form.append('entity_id', opts.entityId);
+    form.append('subfolder', opts.subfolder || 'uploads');
+
+    const headers: Record<string, string> = {};
+    const token = getAccessToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE_URL}/files/upload`, {
+      method: 'POST',
+      headers,
+      body: form,
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Upload failed ${res.status}: ${err}`);
+    }
+    return res.json();
   },
 
   // Templates

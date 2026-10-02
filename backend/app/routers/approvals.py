@@ -389,15 +389,40 @@ def _apply_case_action(action_type: str, entity_id: Optional[str], p: dict, db: 
     now_str = datetime.utcnow().strftime("%Y-%m-%d")
     
     is_urg = bool(p.get("isUrgent", False))
+    try:
+        from backend.app import storage as file_storage
+    except ImportError:
+        from app import storage as file_storage
+
+    uploaded_images = file_storage.materialize_media_list(
+        p.get("uploadedImages", []),
+        category="cases",
+        entity_id=case_id,
+        subfolder="uploads",
+    )
+    dicom_snapshots = file_storage.materialize_media_list(
+        p.get("dicomSnapshots", []),
+        category="cases",
+        entity_id=case_id,
+        subfolder="snapshots",
+    )
+    dicom_file_url = file_storage.materialize_media_reference(
+        p.get("dicomFileUrl"),
+        category="cases",
+        entity_id=case_id,
+        subfolder="dicom",
+        filename_hint="study.dcm",
+    )
+
     meta = {
         "bodyParts": body_parts,
         "clinicalNotes": p.get("clinicalNotes"),
         "findings": p.get("findings"),
         "impression": p.get("impression"),
-        "dicomFileUrl": p.get("dicomFileUrl"),
+        "dicomFileUrl": dicom_file_url,
         "dicomMetadata": p.get("dicomMetadata"),
-        "dicomSnapshots": p.get("dicomSnapshots", []),
-        "uploadedImages": p.get("uploadedImages", []),
+        "dicomSnapshots": dicom_snapshots or [],
+        "uploadedImages": uploaded_images or [],
         "reportsByBodyPart": p.get("reportsByBodyPart", {}),
         "impressionsByBodyPart": p.get("impressionsByBodyPart", {}),
         "hasHeaderUrl": p.get("hasHeaderUrl", True),
@@ -503,7 +528,7 @@ def _apply_case_action(action_type: str, entity_id: Optional[str], p: dict, db: 
 
 
     # Save images
-    images = p.get("uploadedImages", []) + p.get("dicomSnapshots", [])
+    images = (uploaded_images or []) + (dicom_snapshots or [])
     if images:
         for idx, img_url in enumerate(images):
             img_id = f"img-{case_id}-{idx}"
@@ -525,11 +550,28 @@ def _apply_doctor_action(action_type: str, entity_id: Optional[str], p: dict, db
         return
 
     doc = db.query(DoctorDB).filter(DoctorDB.id == doc_id).first()
+    try:
+        from backend.app import storage as file_storage
+    except ImportError:
+        from app import storage as file_storage
+
     meta = {
         "password": p.get("password"),
         "address": p.get("address"),
-        "signatureUrl": p.get("signatureUrl"),
-        "profileFileUrl": p.get("profileFileUrl"),
+        "signatureUrl": file_storage.materialize_media_reference(
+            p.get("signatureUrl"),
+            category="doctors",
+            entity_id=doc_id,
+            subfolder="signature",
+            filename_hint="signature.png",
+        ),
+        "profileFileUrl": file_storage.materialize_media_reference(
+            p.get("profileFileUrl"),
+            category="doctors",
+            entity_id=doc_id,
+            subfolder="profile",
+            filename_hint="profile.png",
+        ),
     }
     now_str = datetime.utcnow().strftime("%Y-%m-%d")
 
@@ -586,14 +628,31 @@ def _apply_center_action(action_type: str, entity_id: Optional[str], p: dict, db
         return
 
     c = db.query(CenterDB).filter(CenterDB.id == center_id).first()
+    try:
+        from backend.app import storage as file_storage
+    except ImportError:
+        from app import storage as file_storage
+
     meta = {
         "firstName": p.get("firstName"),
         "lastName": p.get("lastName"),
         "username": p.get("username"),
         "password": p.get("password"),
         "address": p.get("address"),
-        "headerTemplateUrl": p.get("headerTemplateUrl"),
-        "logoUrl": p.get("logoUrl"),
+        "headerTemplateUrl": file_storage.materialize_media_reference(
+            p.get("headerTemplateUrl"),
+            category="centers",
+            entity_id=center_id,
+            subfolder="header",
+            filename_hint="header.png",
+        ),
+        "logoUrl": file_storage.materialize_media_reference(
+            p.get("logoUrl"),
+            category="centers",
+            entity_id=center_id,
+            subfolder="logo",
+            filename_hint="logo.png",
+        ),
     }
     now_str = datetime.utcnow().strftime("%Y-%m-%d")
 

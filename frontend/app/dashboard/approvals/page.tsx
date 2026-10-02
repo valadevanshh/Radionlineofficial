@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ApiClient, PendingApproval, getAccessToken } from '@/lib/api-client';
-import { RadiologyStore, UserAccount, DEMO_USERS } from '@/lib/radiology-store';
+import { RadiologyStore, UserAccount } from '@/lib/radiology-store';
 import ApprovalDiff from '@/components/ApprovalDiff';
 import {
   ShieldCheck,

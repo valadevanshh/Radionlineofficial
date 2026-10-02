@@ -1,0 +1,175 @@
+{
+  "passed": 24,
+  "failed": 0,
+  "results": [
+    {
+      "role": "AUTH",
+      "step": "Land after admin@radio.com",
+      "ok": true,
+      "detail": "path=/dashboard/approvals expected~/dashboard/approvals",
+      "at": "2026-10-01T20:28:00.598Z"
+    },
+    {
+      "role": "SUPER_ADMIN",
+      "step": "Login",
+      "ok": true,
+      "detail": "http://localhost:3000/dashboard/approvals",
+      "at": "2026-10-01T20:28:00.598Z"
+    },
+    {
+      "role": "SUPER_ADMIN",
+      "step": "Create center via UI",
+      "ok": true,
+      "detail": "already present",
+      "at": "2026-10-01T20:28:02.173Z"
+    },
+    {
+      "role": "SUPER_ADMIN",
+      "step": "Create doctor via UI",
+      "ok": true,
+      "detail": "already present",
+      "at": "2026-10-01T20:28:03.649Z"
+    },
+    {
+      "role": "AUTH",
+      "step": "Land after qa.center@radionet.test",
+      "ok": true,
+      "detail": "path=/dashboard/all-reports expected~/dashboard/all-reports",
+      "at": "2026-10-01T20:28:05.642Z"
+    },
+    {
+      "role": "CENTER",
+      "step": "Login",
+      "ok": true,
+      "detail": "http://localhost:3000/dashboard/all-reports",
+      "at": "2026-10-01T20:28:05.642Z"
+    },
+    {
+      "role": "CENTER",
+      "step": "Create STAT 2-study case via UI",
+      "ok": true,
+      "detail": "worklist",
+      "at": "2026-10-01T20:28:08.536Z"
+    },
+    {
+      "role": "CENTER",
+      "step": "Open invoices",
+      "ok": true,
+      "detail": "http://localhost:3000/dashboard/center-invoices",
+      "at": "2026-10-01T20:28:08.873Z"
+    },
+    {
+      "role": "AUTH",
+      "step": "Land after qa.doctor@radionet.test",
+      "ok": true,
+      "detail": "path=/dashboard/all-reports expected~/dashboard/all-reports",
+      "at": "2026-10-01T20:28:11.123Z"
+    },
+    {
+      "role": "DOCTOR",
+      "step": "Login",
+      "ok": true,
+      "detail": "http://localhost:3000/dashboard/all-reports",
+      "at": "2026-10-01T20:28:11.123Z"
+    },
+    {
+      "role": "DOCTOR",
+      "step": "Accept from Live Feed",
+      "ok": true,
+      "detail": "http://localhost:3000/dashboard/workspace/489bcb10-f810-4992-8049-883fe3d98642",
+      "at": "2026-10-01T20:28:13.793Z"
+    },
+    {
+      "role": "DOCTOR",
+      "step": "Sign study 1",
+      "ok": true,
+      "detail": "clicked Save & Submit",
+      "at": "2026-10-01T20:28:16.831Z"
+    },
+    {
+      "role": "UI",
+      "step": "Dialog: ",
+      "ok": true,
+      "detail": "beforeunload",
+      "at": "2026-10-01T20:28:18.074Z"
+    },
+    {
+      "role": "DOCTOR",
+      "step": "My Work",
+      "ok": true,
+      "detail": "KAVYA PATEL1 of 2 reported",
+      "at": "2026-10-01T20:28:18.709Z"
+    },
+    {
+      "role": "DOCTOR",
+      "step": "Earnings",
+      "ok": true,
+      "detail": "http://localhost:3000/dashboard/doctor-earnings",
+      "at": "2026-10-01T20:28:19.149Z"
+    },
+    {
+      "role": "AUTH",
+      "step": "Land after manager@radio.com",
+      "ok": true,
+      "detail": "path=/dashboard/all-reports expected~/dashboard",
+      "at": "2026-10-01T20:28:21.776Z"
+    },
+    {
+      "role": "MANAGER",
+      "step": "Login",
+      "ok": true,
+      "detail": "http://localhost:3000/dashboard/all-reports",
+      "at": "2026-10-01T20:28:21.776Z"
+    },
+    {
+      "role": "UI",
+      "step": "Dialog: Doctor registration request submitted to Super Admin for approval.",
+      "ok": true,
+      "detail": "alert",
+      "at": "2026-10-01T20:28:23.383Z"
+    },
+    {
+      "role": "MANAGER",
+      "step": "Submit CREATE_DOCTOR",
+      "ok": true,
+      "detail": "modal submitted",
+      "at": "2026-10-01T20:28:24.835Z"
+    },
+    {
+      "role": "AUTH",
+      "step": "Land after admin@radio.com",
+      "ok": true,
+      "detail": "path=/dashboard/approvals expected~/dashboard/approvals",
+      "at": "2026-10-01T20:28:26.981Z"
+    },
+    {
+      "role": "SUPER_ADMIN",
+      "step": "Approve manager request",
+      "ok": true,
+      "detail": "clicked Approve",
+      "at": "2026-10-01T20:28:30.240Z"
+    },
+    {
+      "role": "AUTH",
+      "step": "Land after qa.pendingdoc@radionet.test",
+      "ok": true,
+      "detail": "path=/dashboard/all-reports expected~/dashboard",
+      "at": "2026-10-01T20:28:32.194Z"
+    },
+    {
+      "role": "DOCTOR",
+      "step": "Login approval-created doctor",
+      "ok": true,
+      "detail": "http://localhost:3000/dashboard/all-reports",
+      "at": "2026-10-01T20:28:32.194Z"
+    },
+    {
+      "role": "SUPER_ADMIN",
+      "step": "Admin invoices page",
+      "ok": true,
+      "detail": "need admin session — skipped if still pending doc",
+      "at": "2026-10-01T20:28:33.416Z"
+    }
+  ],
+  "screenshots": "C:\\Project\\Radionline\\radionlineofficial\\ui_screenshots\\zero_flow"
+}

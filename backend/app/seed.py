@@ -1,35 +1,17 @@
 import logging
+import os
+
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 try:
-    from backend.app.models import UserDB, DoctorDB, CenterDB, ReportDB, TemplateDB
+    from backend.app.models import UserDB
     from backend.app.security import hash_password, looks_like_bcrypt
 except ImportError:
-    from app.models import UserDB, DoctorDB, CenterDB, ReportDB, TemplateDB
+    from app.models import UserDB
     from app.security import hash_password, looks_like_bcrypt
 
 logger = logging.getLogger(__name__)
-
-INITIAL_DOCTORS = []
-INITIAL_CENTERS = []
-INITIAL_REPORTS = []
-INITIAL_TEMPLATES = []
-
-DEMO_USERS = [
-    {
-        "email": "admin@radio.com",
-        "name": "Super Administrator",
-        "role": "SUPER_ADMIN",
-        "metadata_": {"password": "radio@1"},
-    },
-    {
-        "email": "manager@radio.com",
-        "name": "SURESHBHAI PATEL",
-        "role": "MANAGER",
-        "metadata_": {"password": "manager@123"},
-    },
-]
 
 
 def _ensure_hashed_password(meta: dict) -> tuple[dict, bool]:
@@ -61,18 +43,24 @@ def migrate_plaintext_passwords(db: Session):
 
 
 def seed_db(db: Session):
-    for u in DEMO_USERS:
-        ex = db.query(UserDB).filter(UserDB.email.ilike(u["email"])).first()
-        if not ex:
-            meta = dict(u.get("metadata_") or {})
-            meta, _ = _ensure_hashed_password(meta)
-            db.add(
-                UserDB(
-                    email=u["email"],
-                    name=u["name"],
-                    role=u["role"],
-                    metadata_=meta,
-                )
+    """Create the first super admin only when the users table is empty.
+
+    Credentials come from BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD.
+    Nothing is inserted when either variable is missing or any user already exists.
+    """
+    existing = db.query(UserDB.id).first()
+    email = (os.getenv("BOOTSTRAP_ADMIN_EMAIL") or "").strip()
+    password = os.getenv("BOOTSTRAP_ADMIN_PASSWORD") or ""
+    name = (os.getenv("BOOTSTRAP_ADMIN_NAME") or "Administrator").strip()
+    if not existing and email and password:
+        db.add(
+            UserDB(
+                email=email,
+                name=name,
+                role="SUPER_ADMIN",
+                metadata_={"password": hash_password(password)},
             )
-    db.commit()
+        )
+        db.commit()
+        logger.info("Bootstrapped initial super admin %s", email)
     migrate_plaintext_passwords(db)

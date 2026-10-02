@@ -6,12 +6,12 @@ try:
     from backend.app.config import settings
     from backend.app.database import engine, SessionLocal
     from backend.app.seed import seed_db
-    from backend.app.routers import auth, reports, doctors, centers, templates, approvals, invoices, case_thread, study_reports
+    from backend.app.routers import auth, reports, doctors, centers, templates, approvals, invoices, case_thread, study_reports, files
 except ImportError:
     from app.config import settings
     from app.database import engine, SessionLocal
     from app.seed import seed_db
-    from app.routers import auth, reports, doctors, centers, templates, approvals, invoices, case_thread, study_reports
+    from app.routers import auth, reports, doctors, centers, templates, approvals, invoices, case_thread, study_reports, files
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -91,6 +91,7 @@ app.include_router(approvals.router, prefix=settings.API_PREFIX)
 app.include_router(invoices.router, prefix=settings.API_PREFIX)
 app.include_router(invoices.billing_router, prefix=settings.API_PREFIX)
 app.include_router(case_thread.router, prefix=settings.API_PREFIX)
+app.include_router(files.router, prefix=settings.API_PREFIX)
 
 
 from fastapi import WebSocket, WebSocketDisconnect, Query
@@ -131,4 +132,5 @@ def health_check():
         "status": "ok",
         "service": settings.PROJECT_NAME,
         "database": engine.dialect.name,
+        "fileStorageRoot": settings.FILE_STORAGE_ROOT,
     }

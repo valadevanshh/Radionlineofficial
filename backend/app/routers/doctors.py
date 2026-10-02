@@ -13,6 +13,10 @@ except ImportError:
     from app.schemas import DoctorCreate, DoctorResponse
     from app.security import get_current_user, require_roles, hash_password, looks_like_bcrypt
 from sqlalchemy.orm.attributes import flag_modified
+try:
+    from backend.app import storage as file_storage
+except ImportError:
+    from app import storage as file_storage
 
 router = APIRouter(
     prefix="/doctors",
@@ -32,8 +36,8 @@ def db_to_schema(d: DoctorDB) -> dict:
         "password": None,
         "contactNumber": d.contact_number,
         "address": meta.get("address"),
-        "signatureUrl": meta.get("signatureUrl"),
-        "profileFileUrl": meta.get("profileFileUrl"),
+        "signatureUrl": file_storage.public_url(meta.get("signatureUrl")),
+        "profileFileUrl": file_storage.public_url(meta.get("profileFileUrl")),
         "degree": meta.get("degree", "M.D. (Radiodiagnosis)"),
         "registrationNumber": meta.get("registrationNumber"),
         "createdAt": d.created_at,
@@ -59,8 +63,20 @@ def save_doctor(
     meta_payload = {
         "password": hashed_pw,
         "address": doc_in.address,
-        "signatureUrl": doc_in.signatureUrl,
-        "profileFileUrl": doc_in.profileFileUrl,
+        "signatureUrl": file_storage.materialize_media_reference(
+            doc_in.signatureUrl,
+            category="doctors",
+            entity_id=doc_id,
+            subfolder="signature",
+            filename_hint="signature.png",
+        ),
+        "profileFileUrl": file_storage.materialize_media_reference(
+            doc_in.profileFileUrl,
+            category="doctors",
+            entity_id=doc_id,
+            subfolder="profile",
+            filename_hint="profile.png",
+        ),
         "degree": doc_in.degree or "M.D. (Radiodiagnosis)",
         "registrationNumber": doc_in.registrationNumber,
     }

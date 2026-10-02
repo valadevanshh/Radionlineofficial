@@ -52,7 +52,7 @@ export default function ReviewSignReportModal({
 
   if (!isOpen || !report) return null;
 
-  const doctorName = currentDoctor ? currentDoctor.fullName : report.assignedDoctorName || 'DR. DIPEN PARIKH';
+  const doctorName = currentDoctor ? currentDoctor.fullName : report.assignedDoctorName || '';
 
   const handleOpenSaveTemplate = () => {
     setSaveTmplTitle(report.bodyParts?.length ? `${report.bodyParts.join(', ')} — Master Template` : 'New Custom Radiology Template');

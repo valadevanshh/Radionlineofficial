@@ -138,22 +138,6 @@ export interface XRayReport {
   isPortable?: boolean;
 }
 
-export const DEMO_USERS: UserAccount[] = [
-  {
-    email: 'admin@radio.com',
-    name: 'Super Administrator',
-    role: 'SUPER_ADMIN',
-    password: 'radio@1',
-  },
-  {
-    email: 'manager@radio.com',
-    name: 'SURESHBHAI PATEL',
-    role: 'MANAGER',
-    password: 'manager@123',
-  },
-];
-
-
 export const INITIAL_DOCTORS: Doctor[] = [];
 
 export const INITIAL_CENTERS: RadiologyCenter[] = [];
@@ -212,16 +196,17 @@ export const RadiologyStore = {
     if (!localStorage.getItem(STORAGE_KEYS.TEMPLATES)) {
       localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(INITIAL_TEMPLATES));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(DEMO_USERS));
+    const storedUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (storedUsers && /admin@radio\.com|manager@radio\.com|radio@1|manager@123/.test(storedUsers)) {
+      localStorage.removeItem(STORAGE_KEYS.USERS);
     }
   },
 
   getUsers(): UserAccount[] {
-    if (typeof window === 'undefined') return DEMO_USERS;
+    if (typeof window === 'undefined') return [];
     this.init();
     const stored = localStorage.getItem(STORAGE_KEYS.USERS);
-    return stored ? JSON.parse(stored) : DEMO_USERS;
+    return stored ? JSON.parse(stored) : [];
   },
 
   saveUser(userAccount: UserAccount) {

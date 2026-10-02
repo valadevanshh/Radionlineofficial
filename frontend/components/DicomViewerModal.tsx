@@ -66,7 +66,7 @@ import { AUTOCOMPLETE_SUGGESTIONS } from '@/lib/radiology-autocomplete';
 import SpellCheckTextarea from '@/components/SpellCheckTextarea';
 import { STUDY_MODALITY_OPTIONS } from '@/components/NewXRayReportModal';
 import { printReportElement, type PrintReportPayload } from '@/lib/print-helper';
-import { ApiClient } from '@/lib/api-client';
+import { ApiClient, resolveMediaUrl } from '@/lib/api-client';
 
 interface DicomViewerModalProps {
   isOpen: boolean;
@@ -510,7 +510,9 @@ export default function DicomViewerModal({
         rawImages.push(...report.uploadedImages);
       }
 
-      const images = Array.from(new Set(rawImages.filter((img) => img && typeof img === 'string' && img.trim() !== '')));
+      const images = Array.from(
+        new Set(rawImages.filter((img) => img && typeof img === 'string' && img.trim() !== '')),
+      ).map((u) => resolveMediaUrl(u) || u);
 
       if (images.length > 0) {
         return images.map((imgUrl, idx) => ({
@@ -1126,14 +1128,14 @@ export default function DicomViewerModal({
     '';
   const doctorDegree = (report?.assignedDoctorDegree || reportingDoctorRecord?.degree || '').trim();
   const doctorRegNo = (report?.assignedDoctorRegNo || reportingDoctorRecord?.registrationNumber || '').trim();
-  const doctorSignatureUrl = (reportingDoctorRecord?.signatureUrl || '').trim();
+  const doctorSignatureUrl = resolveMediaUrl((reportingDoctorRecord?.signatureUrl || '').trim());
 
   const centerRecord = report?.radiologyCenterId
     ? allCenters.find((c) => c.id === report.radiologyCenterId) || RadiologyStore.getCenters().find((c) => c.id === report.radiologyCenterId)
     : null;
   const centerPhone = (centerRecord?.contactNumber || '').trim();
   const centerAddress = (centerRecord?.address || '').trim();
-  const centerLogoUrl = (centerRecord?.logoUrl || '').trim();
+  const centerLogoUrl = resolveMediaUrl((centerRecord?.logoUrl || '').trim());
   const studyModality = (report?.modality || '').trim();
   const studyPartsLabel = (report?.bodyParts || []).filter(Boolean).join(', ');
 

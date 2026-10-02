@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, FilePlus, Check, Trash2, Upload, AlertTriangle, ChevronDown, User, Stethoscope, FileText, Paperclip } from 'lucide-react';
 import { RadiologyStore, XRayReport, Doctor, RadiologyCenter } from '@/lib/radiology-store';
-import { ApiClient } from '@/lib/api-client';
+import { ApiClient, resolveMediaUrl } from '@/lib/api-client';
 
 import { generateUUID } from '@/lib/uuid';
 
@@ -707,10 +707,10 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
                   <div className="mt-1 flex items-center gap-1.5 overflow-x-auto pb-1">
                     {uploadedImages.map((imgSrc, idx) => (
                       <div key={idx} className="relative group shrink-0 w-9 h-9 rounded-lg border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center">
-                        {imgSrc.startsWith('data:image/') ? (
+                        {imgSrc.startsWith('data:image/') || resolveMediaUrl(imgSrc) ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img
-                            src={imgSrc}
+                            src={resolveMediaUrl(imgSrc) || imgSrc}
                             alt={`Scan File ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
@@ -861,10 +861,10 @@ export default function NewXRayReportModal({ isOpen, onClose, onSave }: NewXRayR
                       <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-1">
                         {clinicalHistoryImages.map((imgSrc, idx) => (
                           <div key={idx} className="relative group shrink-0 w-9 h-9 rounded-lg border border-purple-200 bg-purple-50 overflow-hidden flex items-center justify-center">
-                            {imgSrc.startsWith('data:image/') ? (
+                            {imgSrc.startsWith('data:image/') || resolveMediaUrl(imgSrc) ? (
                               /* eslint-disable-next-line @next/next/no-img-element */
                               <img
-                                src={imgSrc}
+                                src={resolveMediaUrl(imgSrc) || imgSrc}
                                 alt={`History File ${idx + 1}`}
                                 className="w-full h-full object-cover"
                               />

@@ -26,6 +26,10 @@ except ImportError:
     from app.security import get_current_user, require_roles
     from app import pricing
     from app import billing as billing_svc
+try:
+    from backend.app import storage as file_storage
+except ImportError:
+    from app import storage as file_storage
 
 router = APIRouter(
     prefix="/reports",
@@ -104,11 +108,12 @@ def db_to_schema(r: ReportDB) -> dict:
         "impression": meta.get("impression"),
         "reportsByBodyPart": meta.get("reportsByBodyPart"),
         "impressionsByBodyPart": meta.get("impressionsByBodyPart"),
-        "dicomFileUrl": meta.get("dicomFileUrl"),
+        "dicomFileUrl": file_storage.public_url(meta.get("dicomFileUrl")),
         "dicomMetadata": meta.get("dicomMetadata"),
         "docContent": meta.get("docContent"),
-        "dicomSnapshots": meta.get("dicomSnapshots"),
-        "uploadedImages": meta.get("uploadedImages"),
+        "dicomSnapshots": file_storage.public_url_list(meta.get("dicomSnapshots")),
+        "uploadedImages": file_storage.public_url_list(meta.get("uploadedImages")),
+        "clinicalHistoryImages": file_storage.public_url_list(meta.get("clinicalHistoryImages")),
         "hasHeaderUrl": meta.get("hasHeaderUrl", True),
         "hasNoHeaderUrl": meta.get("hasNoHeaderUrl", True),
         "createdAt": r.created_at,
@@ -156,11 +161,12 @@ def study_to_schema(study: StudyDB, case: Optional[CaseDB] = None) -> dict:
         "impression": study.impression if study else None,
         "reportsByBodyPart": meta.get("reportsByBodyPart"),
         "impressionsByBodyPart": meta.get("impressionsByBodyPart"),
-        "dicomFileUrl": meta.get("dicomFileUrl"),
+        "dicomFileUrl": file_storage.public_url(meta.get("dicomFileUrl")),
         "dicomMetadata": meta.get("dicomMetadata"),
         "docContent": study.doc_content if study else None,
-        "dicomSnapshots": meta.get("dicomSnapshots"),
-        "uploadedImages": meta.get("uploadedImages"),
+        "dicomSnapshots": file_storage.public_url_list(meta.get("dicomSnapshots")),
+        "uploadedImages": file_storage.public_url_list(meta.get("uploadedImages")),
+        "clinicalHistoryImages": file_storage.public_url_list(meta.get("clinicalHistoryImages")),
         "hasHeaderUrl": meta.get("hasHeaderUrl", True),
         "hasNoHeaderUrl": meta.get("hasNoHeaderUrl", True),
         "createdAt": case.created_at if case else "2026-09-14T00:00:00Z",
@@ -522,6 +528,32 @@ async def save_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     if prior_case and prior_case.status == "Completed":
         was_completed = True
 
+    uploaded_images = file_storage.materialize_media_list(
+        report_in.uploadedImages,
+        category="cases",
+        entity_id=rep_id,
+        subfolder="uploads",
+    )
+    clinical_history_images = file_storage.materialize_media_list(
+        getattr(report_in, "clinicalHistoryImages", None),
+        category="cases",
+        entity_id=rep_id,
+        subfolder="clinical",
+    )
+    dicom_snapshots = file_storage.materialize_media_list(
+        report_in.dicomSnapshots,
+        category="cases",
+        entity_id=rep_id,
+        subfolder="snapshots",
+    )
+    dicom_file_url = file_storage.materialize_media_reference(
+        report_in.dicomFileUrl,
+        category="cases",
+        entity_id=rep_id,
+        subfolder="dicom",
+        filename_hint="study.dcm",
+    )
+
     meta_payload = {
         "bodyParts": report_in.bodyParts,
         "ageUnit": report_in.ageUnit or "Years",
@@ -530,12 +562,12 @@ async def save_report(report_in: ReportCreate, db: Session = Depends(get_db)):
         "impression": report_in.impression,
         "reportsByBodyPart": report_in.reportsByBodyPart,
         "impressionsByBodyPart": report_in.impressionsByBodyPart,
-        "dicomFileUrl": report_in.dicomFileUrl,
+        "dicomFileUrl": dicom_file_url,
         "dicomMetadata": report_in.dicomMetadata,
         "docContent": report_in.docContent,
-        "dicomSnapshots": report_in.dicomSnapshots,
-        "uploadedImages": report_in.uploadedImages,
-        "clinicalHistoryImages": getattr(report_in, "clinicalHistoryImages", None),
+        "dicomSnapshots": dicom_snapshots,
+        "uploadedImages": uploaded_images,
+        "clinicalHistoryImages": clinical_history_images,
         "assignedDoctorIds": report_in.assignedDoctorIds or ["ALL"],
         "assignedDoctorDegree": report_in.assignedDoctorDegree or "M.D. (Radiodiagnosis)",
         "assignedDoctorRegNo": report_in.assignedDoctorRegNo or "MCI Reg. No. 48291",
@@ -641,8 +673,8 @@ async def save_report(report_in: ReportCreate, db: Session = Depends(get_db)):
             db.commit()
 
             # Insert uploaded images into study_images
-            if report_in.uploadedImages:
-                for idx, img_url in enumerate(report_in.uploadedImages):
+            if uploaded_images:
+                for idx, img_url in enumerate(uploaded_images):
                     img_id = f"{study_id}-img-{idx}"
                     image_obj = StudyImageDB(
                         id=img_id,
